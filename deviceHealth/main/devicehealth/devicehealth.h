@@ -41,13 +41,13 @@ int restart_counter()
 
     // Open
     err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
-    // ESP_LOGI("Restart_counter","%s",esp_err_to_name(err));
+    
 
     err = nvs_get_i8(my_handle, reset_counter_key, &num);
-    // ESP_LOGI("Restart_counter","%s",esp_err_to_name(err));
+   
     num++;
     err = nvs_set_i8(my_handle, reset_counter_key, num);
-    // ESP_LOGI("Restart_counter","%s",esp_err_to_name(err));
+   
     nvs_close(my_handle);
     return num;
 }

@@ -12,11 +12,11 @@
 #include "nanopb/deviceHealth.pb.h"
 #include "protobufs/encoding_callbacks.h"
 #include "protobufs/decoding_callbacks.h"
-const char *reset_counter_key = "qwerty";
-const char *deviceHealthKey = "kedskh";
+#define reset_counter_key = "qwerty";
+#define deviceHealthKey = "kedskh";
 int numberOfResets = 0;
 #define protobufSize 256
-
+uint8_t buffer[protobufSize];
 #define STORAGE_NAMESPACE "storage"
 #include "persistent_logs.h"
 

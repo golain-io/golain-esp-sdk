@@ -35,7 +35,7 @@ void app_main(void)
         P_LOG_E("main", "This is not an error!");
     }
 
-    uint8_t buffer[protobufSize];
+   
     size_t message_length;
 
     /* Encode our message */
