@@ -14,10 +14,13 @@
 #include "protobufs/decoding_callbacks.h"
 #define reset_counter_key  "qwerty"
 #define deviceHealthKey  "kedskh"
-int numberOfResets = 0;
 #define protobufSize 256
 uint8_t buffer[protobufSize];
 #define STORAGE_NAMESPACE "storage"
+int numberOfResets = 0;
+
+
+
 #include "persistent_logs.h"
 
 esp_chip_info_t info;
