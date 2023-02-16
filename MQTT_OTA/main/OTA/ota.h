@@ -2,6 +2,7 @@
 
 #include <esp_ota_ops.h>
 #include <mqtt_client.h>
+#include "../config/config.h"
 #define OTA_TAG "OTA_TAG"
 
 int current_len = 0;

@@ -3,8 +3,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-#include "driver/rmt.h"
-#include "led_strip.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -27,11 +25,23 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 
+//Tags
 #define WIFI_TAG "WIFI_TAG"
 #define MQTT_TAG "MQTT TAG"
+#define OTA_TAG "OTA_TAG"
 
+//MQTT params
 #define MQTT_URI "mqtt://broker.hivemq.com"
 #define MQTT_PORT 1883
 
+
+//OTA params
+int current_len = 0;
+uint8_t status = 0;
+esp_ota_handle_t ota_handle = 0;
+
+//Wifi Params
+#define CONFIG_WIFI_SSID "FLBS"
+#define CONFIG_WIFI_PASSWORD "hellowworld"
 static EventGroupHandle_t wifi_event_group;
 const static int CONNECTED_BIT = BIT0;
