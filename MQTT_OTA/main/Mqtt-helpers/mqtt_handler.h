@@ -35,7 +35,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
-    // your_context_t *context = event->context;
+
     switch (event->event_id)
     {
     case MQTT_EVENT_CONNECTED:
@@ -79,7 +79,7 @@ static void mqtt_app_start(void)
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = "mqtt://broker.hivemq.com",
         .event_handle = mqtt_event_handler,
-        // .user_context = (void *)your_context
+        
     };
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
