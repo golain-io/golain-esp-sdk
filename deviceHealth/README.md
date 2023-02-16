@@ -11,7 +11,7 @@ This example demonstrates how to read various device parameters such as number o
 | Number of Errors | tracks number of errors occured since last reboot | `deviceHealth.errorCountSinceLastReset` |
 | Reboot reason | tells the reason behind last reboot | `deviceHealth.rebootReason` |
 | Chip revision | Gives chip revision number | `deviceHealth.chipRevision` |
-| User data | There are two user data fields, one for numeric data and another for string data | `deviceHealth.userStringData` && `deviceHealth.userNumericData |`
+| User data | There are two user data fields, one for numeric data and another for string data | `deviceHealth.userStringData` && `deviceHealth.userNumericData` |
 
 
 ## How to use example
