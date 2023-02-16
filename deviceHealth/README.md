@@ -4,11 +4,16 @@
 
 This example demonstrates how to read various device parameters such as number of reboots, its reason and many more.
 
-  * Reset count - tracks number of soft and hard restarts.
-  * Number of errors since last reboot - tracks number of errors occured since last reboot. (This feature can be used only if you use persistent logs)
-  * Reboot reason - Tells the reason behind last reboot. (check proto file for more explaination)
-  * Chip revision - Gives the chip revision number
-  * User data - There are two user data fields, one for numeric data and another for string data.
+
+  | Metric | Definition | variable name |
+| --- | --- | --- |
+| Reset count | tracks number of soft and hard restarts | `deviceHealth.reset_counter` |
+| Number of Errors | tracks number of errors occured since last reboot | `deviceHealth.errorCountSinceLastReset` |
+| Reboot reason | tells the reason behind last reboot | `deviceHealth.rebootReason` |
+| Chip revision | Gives chip revision number | `deviceHealth.chipRevision` |
+| User data | There are two user data fields, one for numeric data and another for string data | `deviceHealth.userStringData` && `deviceHealth.userNumericData |`
+
+
 ## How to use example
 
 ### Hardware required
