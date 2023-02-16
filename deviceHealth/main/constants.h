@@ -15,9 +15,9 @@
 #define reset_counter_key "qwerty"
 #define deviceHealthKey "kedskh"
 #define protobufSize 256
-uint8_t buffer[protobufSize];
 #define STORAGE_NAMESPACE "storage"
 int numberOfResets = 0;
+uint8_t buffer[protobufSize];
 
 #include "persistent_logs.h"
 
