@@ -27,7 +27,6 @@
 #include "malloc.h"
 #include "../config/config.h"
 
-#define MQTT_TAG "MQTT TAG"
 
 
 
@@ -77,7 +76,8 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 static void mqtt_app_start(void)
 {
     const esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = "mqtt://broker.hivemq.com",
+        .uri = MQTT_URI,
+        .port MQTT_PORT,
         .event_handle = mqtt_event_handler,
         
     };
