@@ -23,8 +23,7 @@
 #include "mqtt_client.h"
 #include "../config/config.h"
 
-#define CONFIG_WIFI_SSID "FLBS"
-#define CONFIG_WIFI_PASSWORD "hellowworld"
+
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {

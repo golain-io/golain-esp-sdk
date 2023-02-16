@@ -3,11 +3,9 @@
 #include <esp_ota_ops.h>
 #include <mqtt_client.h>
 #include "../config/config.h"
-#define OTA_TAG "OTA_TAG"
 
-int current_len = 0;
-uint8_t status = 0;
-esp_ota_handle_t ota_handle = 0;
+
+
 
 esp_err_t ota_update_handler(esp_mqtt_event_handle_t event)
 {
