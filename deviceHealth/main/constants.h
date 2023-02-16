@@ -8,12 +8,12 @@
 #include "nvs.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "nanopb/pb.h"
-#include "nanopb/deviceHealth.pb.h"
+#include "pb.h"
+#include "protobufs/deviceHealth.pb.h"
 #include "protobufs/encoding_callbacks.h"
 #include "protobufs/decoding_callbacks.h"
-#define reset_counter_key = "qwerty";
-#define deviceHealthKey = "kedskh";
+#define reset_counter_key  "qwerty"
+#define deviceHealthKey  "kedskh"
 int numberOfResets = 0;
 #define protobufSize 256
 uint8_t buffer[protobufSize];

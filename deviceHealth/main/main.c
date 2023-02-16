@@ -7,8 +7,8 @@
 #include "nvs.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "nanopb/pb.h"
-#include "nanopb/deviceHealth.pb.h"
+#include <pb.h>
+#include "protobufs/deviceHealth.pb.h"
 #include "protobufs/encoding_callbacks.h"
 #include "protobufs/decoding_callbacks.h"
 #include "constants.h"
