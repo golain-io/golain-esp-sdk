@@ -25,6 +25,9 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 
+#include <esp_ota_ops.h>
+#include <mqtt_client.h>
+
 //Tags
 #define WIFI_TAG "WIFI_TAG"
 #define MQTT_TAG "MQTT TAG"

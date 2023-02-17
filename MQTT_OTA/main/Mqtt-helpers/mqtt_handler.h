@@ -77,7 +77,6 @@ static void mqtt_app_start(void)
 {
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = MQTT_URI,
-        .port MQTT_PORT,
         .event_handle = mqtt_event_handler,
         
     };
