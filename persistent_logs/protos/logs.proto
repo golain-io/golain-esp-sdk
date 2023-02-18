@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+enum Level {
+    NONE = 0;
+    ERROR = 1;
+    WARNING = 2;
+    INFO = 3;
+    DEBUG = 4;
+    VERBOSE = 5;
+}
+
+message PLog {
+    Level level = 1;
+    string tag = 2;
+    string function = 3;
+    string message = 4;
+    uint32 time_ms = 5;
+}
