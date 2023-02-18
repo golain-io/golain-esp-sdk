@@ -33,22 +33,33 @@ esp_err_t deviceHealthStore(uint8_t *deviceHealthproto)
     return err;
 }
 
-int restart_counter()
-{
+int restart_counter() {
     int8_t num = 0;
     nvs_handle_t my_handle;
     esp_err_t err;
 
     // Open
     err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
-    
+    if (err != ESP_OK) {
+      ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+      return num;
+    }
 
     err = nvs_get_i8(my_handle, reset_counter_key, &num);
-   
+    if (err != ESP_OK) {
+      ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+      return num;
+    }
+
     num++;
     err = nvs_set_i8(my_handle, reset_counter_key, num);
+    if (err != ESP_OK) {
+      ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+      return num;
+    }
    
     nvs_close(my_handle);
+    
     return num;
 }
 

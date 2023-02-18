@@ -85,7 +85,9 @@ esp_err_t write_to_nvs(uint8_t* data, size_t len) {
     return err;
   }
   nvs_close(p_log_handle);
-  ESP_LOGI(LOGGING_TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+  #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+    ESP_LOGI(LOGGING_TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+  #endif
   return err;
 }
 
@@ -149,21 +151,33 @@ esp_err_t read_old_logs(esp_err_t (*_send_mqtt_message)(uint8_t* buffer, size_t 
   for (uint8_t i = 0; i <= CONFIG_MAX_PERSISTENT_LOGS; i++) {
     char key[4];
     sprintf(key, "%d", i);
-    ESP_LOGI(LOGGING_TAG, "Reading NVS key: %s", key);
+
+    #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+      ESP_LOGI(LOGGING_TAG, "Reading NVS key: %s", key);
+    #endif
     // get size of stored BLOB
     size_t len;
     err = nvs_get_blob(p_log_handle, key, NULL, &len);
     
-    ESP_LOGI(LOGGING_TAG, "Size of stored data: %d", len);
+    #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+      ESP_LOGI(LOGGING_TAG, "Size of stored data: %d", len);
+    #endif
 
-    if (len == 0) {ESP_LOGI(LOGGING_TAG, "Nothing stored here."); continue;}
+    if (len == 0) {
+      #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+        ESP_LOGI(LOGGING_TAG, "Nothing stored here.");
+      #endif
+      continue;
+    }
     // get stored BLOB
     err = nvs_get_blob(p_log_handle, key, buffer, &len);
     if (err != ESP_OK) {
       ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
       continue;
     }
-    ESP_LOGI(LOGGING_TAG, "Read from NVS: PLogID:%d : %s", i, (char*)buffer);
+    #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+      ESP_LOGI(LOGGING_TAG, "Read from NVS: PLogID:%d : %s", i, (char*)buffer);
+    #endif
     _send_mqtt_message(buffer, len);
   }
   memset(buffer, 0, 256);
