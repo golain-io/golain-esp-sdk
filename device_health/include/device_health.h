@@ -7,13 +7,13 @@
 #include "nvs.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+
 #include "pb.h"
-#include "../protobufs/deviceHealth.pb.h"
-#include "../protobufs/encoding_callbacks.h"
-#include "../protobufs/decoding_callbacks.h"
-#include "../constants.h"
-#include "../persistent_logs.h"
-#include "../constants.h"
+#include "device_health.pb.h"
+#include "encode_callbacks.h"
+#include "decode_callbacks.h"
+#include "constants.h"
+#include "persistent_logs.h"
 
 esp_err_t deviceHealthStore(uint8_t *deviceHealthproto)
 {

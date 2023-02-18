@@ -2,5 +2,8 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
+# must be set before project() is called
+set(EXTRA_COMPONENT_DIRS "../../")
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(deviceHealth)
+project(example)

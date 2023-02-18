@@ -7,13 +7,11 @@
 #include "nvs.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+
 #include <pb.h>
-#include "protobufs/deviceHealth.pb.h"
-#include "protobufs/encoding_callbacks.h"
-#include "protobufs/decoding_callbacks.h"
 #include "constants.h"
 #include "persistent_logs.h"
-#include "devicehealth/devicehealth.h"
+#include "device_health.h"
 
 
 

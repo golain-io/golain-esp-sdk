@@ -1,5 +1,9 @@
-#pragma once 
+#ifndef DECODING_CALLBACKS_H
+#define DECODING_CALLBACKS_H
+
+#include "pb.h"
 #include "string.h"
+
 
 bool decode_string(pb_istream_t *stream, const pb_field_t *field, void **arg) {
     uint8_t buffer[1024] = {0};
@@ -14,3 +18,5 @@ bool decode_string(pb_istream_t *stream, const pb_field_t *field, void **arg) {
     sprintf((char*)*arg, "%s", buffer);
     return true;
 }
+
+#endif
