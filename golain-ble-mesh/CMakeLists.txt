@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "include/golain_ble_comp.c"
+    SRCS "include/golain_blemesh_comp.c"
     INCLUDE_DIRS "include"
-    REQUIRES nanopb log driver nvs_flash bt
+    REQUIRES bt nanopb log driver nvs_flash
 )

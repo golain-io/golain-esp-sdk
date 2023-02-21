@@ -35,13 +35,13 @@ nvs_handle_t my_handle;
 
 golain_err_t UpdatewithStruct(void){
     ESP_LOGI(TAG, "Updated using struct");
-    pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, shadow_size+1);
+    pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, shadow_size);
     
     if(!pb_encode(&ostream, shadow_fields, &Shadow)){
         ESP_LOGE(TAG,"%s",ostream.errmsg);
         return PB_ENCODE_FAIL;
     }
-    updateNVS(shadow_buffer, shadow_size+1);
+    updateNVS(shadow_buffer, shadow_size);
     custom_cb();
     return GOLAIN_OK;
 }
@@ -54,7 +54,9 @@ if(buff != NULL){
     pb_istream_t istream = pb_istream_from_buffer(buff, len);
     bool decode_status = pb_decode(&istream, shadow_fields, &Shadow);
     if(!decode_status){
+        ESP_LOGE(TAG,"%s",istream.errmsg);
         ESP_LOGE(TAG, "Decoding failed");
+        shadow_err = PB_UPDATE_FAIL;
     }
     else{
     updateNVS(buff,len);
@@ -99,7 +101,7 @@ enum golain_err_t InitDeviceShadow(ShadowCfg temp_cfg){
         
         case(ESP_OK): //Decode buffer into pb
         ESP_LOGD(TAG, "Buffer in NVS found");
-        pb_istream_t istream = pb_istream_from_buffer(shadow_buffer, shadow_size+1);
+        pb_istream_t istream = pb_istream_from_buffer(shadow_buffer, shadow_size);
         bool decode_state = pb_decode(&istream, shadow_fields, &Shadow);
         
         if(!decode_state){
@@ -162,13 +164,14 @@ enum golain_err_t updateNVS(uint8_t * buff, size_t len){
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------
-golain_err_t GetShadow(uint8_t * buff, size_t buff_len){
-    pb_ostream_t ostream = pb_ostream_from_buffer(buff, shadow_size+1);
-    
+golain_err_t GetShadow(uint8_t * buff, size_t buff_len, size_t* encoded_size){
+    pb_ostream_t ostream = pb_ostream_from_buffer(buff, shadow_size);
     if(!pb_encode(&ostream, shadow_fields, &Shadow)){
         ESP_LOGE(TAG,"%s",ostream.errmsg);
         return PB_ENCODE_FAIL;
     }
+    *encoded_size = ostream.bytes_written;
+    ESP_LOGI(TAG, "Encoded Length: %d", *encoded_size);
     return GOLAIN_OK;
 }
 

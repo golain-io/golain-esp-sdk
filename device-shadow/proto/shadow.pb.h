@@ -11,9 +11,9 @@
 
 /* Struct definitions */
 typedef struct _shadow {
-    bool rtt;
-    bool pause;
-    bool exit;
+    int32_t red;
+    int32_t blue;
+    int32_t green;
 } shadow;
 
 
@@ -26,15 +26,15 @@ extern "C" {
 #define shadow_init_zero                         {0, 0, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define shadow_rtt_tag                           1
-#define shadow_pause_tag                         2
-#define shadow_exit_tag                          3
+#define shadow_red_tag                           1
+#define shadow_blue_tag                          2
+#define shadow_green_tag                         3
 
 /* Struct field encoding specification for nanopb */
 #define shadow_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, BOOL,     rtt,               1) \
-X(a, STATIC,   SINGULAR, BOOL,     pause,             2) \
-X(a, STATIC,   SINGULAR, BOOL,     exit,              3)
+X(a, STATIC,   SINGULAR, INT32,    red,               1) \
+X(a, STATIC,   SINGULAR, INT32,    blue,              2) \
+X(a, STATIC,   SINGULAR, INT32,    green,             3)
 #define shadow_CALLBACK NULL
 #define shadow_DEFAULT NULL
 
@@ -44,7 +44,7 @@ extern const pb_msgdesc_t shadow_msg;
 #define shadow_fields &shadow_msg
 
 /* Maximum encoded size of messages (where known) */
-#define shadow_size                              6
+#define shadow_size                              33
 
 #ifdef __cplusplus
 } /* extern "C" */

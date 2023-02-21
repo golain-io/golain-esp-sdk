@@ -25,7 +25,7 @@
 
 /*Shadow includes*/
 #include "shadow_helper.h"
-#include "proto/shadow.pb.h"
+#include "shadow.pb.h"
 
 extern shadow Shadow;
 

@@ -78,6 +78,6 @@ golain_err_t updateNVS(uint8_t * buff, size_t len); //Done
  * 
  * @param message_len Length of the shadow you are using 
 */
-golain_err_t GetShadow(uint8_t * buff, size_t buff_len);
+golain_err_t GetShadow(uint8_t * buff, size_t buff_len, size_t* encoded_size);
 
 #endif

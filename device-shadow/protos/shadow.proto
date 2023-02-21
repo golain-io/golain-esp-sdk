@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-message shadow{
-	bool rtt = 1;
-	bool pause = 2;
-	bool exit = 3;
-	
-}
