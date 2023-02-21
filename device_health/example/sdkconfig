@@ -1241,9 +1241,20 @@ CONFIG_NVS_STORE_KEY="store"
 # end of device_health
 
 #
+# device_health
+#
+# end of device_health
+
+#
+# device_health
+#
+# end of device_health
+
+#
 # persistent_logs
 #
 CONFIG_MAX_PERSISTENT_LOGS=50
+CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL=0
 # end of persistent_logs
 # end of Component config
 
