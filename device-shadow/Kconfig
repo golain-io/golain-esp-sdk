@@ -1,27 +1,9 @@
-menu device_health
+menu device_shadow
 
-    config RESET_COUNTER_KEY
-        string "Reset counter key for NVS store"
-        default "r-key"
-        help
-            Key for reset counter in NVS store.
-    
-    config DEVICE_HEALTH_STORE
-        string "NVS store for device health"
-        default "device-health"
-        help
-            NVS store for device health.
-    
-    config DEVICE_HEALTH_BUFFER_SIZE
-        int "Device health buffer size"
+    config DEVICE_SHADOW_BUFFER_SIZE
+        int "Device shadow buffer size"
         default 256
         help
-            Device health buffer size.
-    
-    config NVS_STORE_KEY
-        string "NVS store key"
-        default "store"
-        help
-            NVS store key.
+            Device shadow buffer size.
 
 endmenu
