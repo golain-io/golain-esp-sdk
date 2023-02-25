@@ -1348,22 +1348,18 @@ CONFIG_WPA_MBEDTLS_CRYPTO=y
 # end of Supplicant
 
 #
+# device_shadow
+#
+CONFIG_DEVICE_SHADOW_BUFFER_SIZE=256
+# end of device_shadow
+
+#
 # device_health
 #
 CONFIG_RESET_COUNTER_KEY="r-key"
 CONFIG_DEVICE_HEALTH_STORE="device-health"
 CONFIG_DEVICE_HEALTH_BUFFER_SIZE=256
 CONFIG_NVS_STORE_KEY="store"
-# end of device_health
-
-#
-# device_health
-#
-# end of device_health
-
-#
-# device_health
-#
 # end of device_health
 
 #

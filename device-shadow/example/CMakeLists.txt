@@ -19,5 +19,3 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE} nanopb/generator/nanopb_generator.p
 
 configure_file(${CMAKE_SOURCE_DIR}/../../shadow.pb.h ${CMAKE_SOURCE_DIR}/../proto COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/../../shadow.pb.c ${CMAKE_SOURCE_DIR}/../proto COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/../extras/CMakeLists.txt 
-    ${CMAKE_SOURCE_DIR}/../../nanopb/ COPYONLY)
