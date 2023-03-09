@@ -42,16 +42,6 @@ static uint8_t rcvDataLength = 0;
 
 
 
-extern const char mqtt_device_cert_pem_start[] asm("_binary_device_cert_pem_start");
-extern const char mqtt_device_pvt_key_pem_start[] asm("_binary_device_private_key_pem_start");
-extern const char mqtt_broker_cert_pem_start[] asm("_binary_mqtt_broker_cert_pem_start");
-extern const unsigned char mqtt_root_ca_cert_pem_start[] asm("_binary_root_ca_cert_pem_start");
-
-extern const char mqtt_device_cert_pem_end[] asm("_binary_device_cert_pem_end");
-extern const char mqtt_device_pvt_key_pem_end[] asm("_binary_device_private_key_pem_end");
-extern const char mqtt_broker_cert_pem_end[] asm("_binary_mqtt_broker_cert_pem_end");
-extern const unsigned char mqtt_root_ca_cert_pem_end[] asm("_binary_root_ca_cert_pem_end");
-
 
 //-----------------------------------------------------------------------------------------------------------Only  used in this file
 
@@ -76,7 +66,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     client = event->client;
     int msg_id;
-    char * rcv_topic = (char *)malloc(10);
+    //char * rcv_topic = (char *)malloc(10);
     char temp_names[] = CONFIG_MESSAGE_NAMES;
     splitintoarray(temp_names, topics, ",");    
     switch ((esp_mqtt_event_id_t)event_id) {
@@ -117,50 +107,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         memcpy(dirtyDataArray, event->data, event->data_len);
         rcvDataLength = event->data_len;
         
-        //ESP_LOGI(TAG, "MQTT_EVENT_DATA Topic size: %d", event->topic_len);
-        rcv_topic = (char*)calloc((event->topic_len), sizeof(char));
-        memcpy(rcv_topic, event->topic, event->topic_len);
 
-        printf("TOPIC=%s\r\n", rcv_topic);
+        printf("TOPIC=%.*s\r\n", event->topic, event->topic_len);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
         
         ESP_LOGW(TAG,"%s %s", topics[0], topics[1]);
-        
-        /*
-        // splitintoarray(rcv_topic, split_topic, "/");
-        
-        // ESP_LOGI( TAG, "Last topic %s", split_topic[2]);
-
-        // //Everything below should be a custom function
-        // int topic_num = string_switch(topics, CONFIG_NUMBER_OF_MESSAGES, split_topic[2]);
-        // //ESP_LOGI(TAG, "%d", topic_num);       
-        // switch(topic_num){
-        //     case 0:
-        //         ESP_LOGI(TAG, "Shadow topic");
-        //             char * rcv_data = event->data;
-        //             switch(rcv_data[0]){
-        //                 case 't': 
-        //                 postData("r", 1, rcv_topic, client);
-        //                 ESP_LOGI(TAG, "T received");
-        //                 break;
-        //                 case 'r':
-        //                 postData("R received", 10, rcv_topic, client);
-        //                 ESP_LOGI(TAG, "R received");
-        //                 break;
-        //                 default:
-        //                 ESP_LOGI(TAG, "Invalid received");
-        //                 break;
-        //             }
-        //     break;
-        //     case 1:
-        //         ESP_LOGI(TAG, "Ended topic");
-        //     break;
-        //     default:
-        //         ESP_LOGW(TAG, "Bad topic");
-        //     break;
-
-        //}
-        //Up till here */
+      
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
