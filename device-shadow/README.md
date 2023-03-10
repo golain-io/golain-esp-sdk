@@ -1,55 +1,53 @@
-# Device health read example
+# Device Shadow Library
+
+## ***Config structure***
+
+#### ```ShadowCfg``` : Config structure for shadow functionality
+```shadow_update_cb``` : Callback function for when the shadow is updated.
+
+```clean_on_error``` : When set to HIGH or 1, clear NVS when invalid buffer is present. The buffer will be considered invalid when it cannot be decoded into the shadow protobuffer.
+
+## ***Functions***
+
+#### ```UpdatewithStruct``` : A function to commit war crimes against the nvs by writing the global shadow onto it. This is useful for using during runtime.
+
+#### ```UpdatewithBuff(buff,size)``` : Update the global shadow and the NVS simultaneously with a buffer. This is particularly useful when receiving an encoded shadow protobuff via protocols like mqtt or ble. 
+
+``buff`` : Buffer that contains encoded pb message.
+
+``len`` : Length of the pb message.
+
+#### ```InitDeviceShadow(temp_cfg)``` : Initialise the shadow service.
+
+``temp_cfg`` : Config structure required for initialising the shadow service.
 
 
+#### ```GetShadow( buff, buff_len, encoded_size)```: Get the encoded version of the shadow protobuffer.
+``buff`` The buffer you want to store the encoded protobuffer in. 
 
-This example demonstrates how to read various device parameters such as number of reboots, its reason and many more.
+``buff_len`` Length of the above buffer.
 
+``message_len`` Length of the shadow you are using. 
 
-  | Metric | Definition | variable name |
-| --- | --- | --- |
-| Reset count | tracks number of soft and hard restarts | `deviceHealth.reset_counter` |
-| Number of Errors | tracks number of errors occured since last reboot | `deviceHealth.errorCountSinceLastReset` |
-| Reboot reason | tells the reason behind last reboot | `deviceHealth.rebootReason` |
-| Chip revision | Gives chip revision number | `deviceHealth.chipRevision` |
-| User data | There are two user data fields, one for numeric data and another for string data | `deviceHealth.userStringData` && `deviceHealth.userNumericData` |
-
+# Example 
+It contains a program that uses the shadow to work with our BLE Mesh component. Currently, the shadow has three `int32` members. You can store and read these members via BLE mesh by triggering _Control set_ and _Control get_ repectively.
 
 ## How to use example
 
 ### Hardware required
 
-This example can be run on most common development boards which have an active button connected to boot mode pin. On most boards, this button is labeled as "Boot". When pressed, the button connects boot mode pin to ground.
+The example has been tested on `ESP32-WROOM32-D` and `ESP32-C3` on esp-idf `v4.4`. 
 
 ### Build and flash
 
 Build the project and flash it to the board, then run monitor tool to view serial output:
 
 ```
+idf.py build 
 idf.py -p PORT flash monitor
-```
 
+```
 (To exit the serial monitor, type ``Ctrl-]``.)
 
 See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
 
-## Example Output
-
-
-E (279) main: (app_main)-> This is not an error!
-E (279) main: (app_main)-> This is not an error!
-E (289) main: (app_main)-> This is not an error!
-E (289) main: (app_main)-> This is not an error!
-E (299) main: (app_main)-> This is not an error!
-E (299) main: (app_main)-> This is not an error!
-E (309) main: (app_main)-> This is not an error!
-E (309) main: (app_main)-> This is not an error!
-E (319) main: (app_main)-> This is not an error!
-E (319) main: (app_main)-> This is not an error!
-I (339) main: device health Stored successfully
-I (339) debug: was called from decode_message
-I (339) decode: number of errors since last reboot: 10
-I (339) decode: last reboot reason 0
-I (349) decode: number of reboots: 9
-I (349) decode: chip revision: 3
-I (359) decode: user numeric data: 569.780029
-I (359) decode: user string data: Zephyr is better
