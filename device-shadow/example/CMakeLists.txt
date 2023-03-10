@@ -8,14 +8,16 @@ set(EXTRA_COMPONENT_DIRS "../../")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(blemesh_shadow)
 
-
-configure_file(${CMAKE_SOURCE_DIR}/../proto/shadow.proto ${CMAKE_SOURCE_DIR}/../../nanopb/generator/proto COPYONLY)
-
 execute_process(COMMAND pip install protobuf grpcio-tools)
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} nanopb/generator/nanopb_generator.py shadow.proto
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../..)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/protos/shadow.proto ${CMAKE_CURRENT_SOURCE_DIR}/../protos/shadow.proto COPYONLY)
+
+execute_process(COMMAND ${PYTHON_EXECUTABLE} ../../nanopb/generator/nanopb_generator.py shadow.proto
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../protos)
 
 
-configure_file(${CMAKE_SOURCE_DIR}/../../shadow.pb.h ${CMAKE_SOURCE_DIR}/../proto COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/../../shadow.pb.c ${CMAKE_SOURCE_DIR}/../proto COPYONLY)
+# REPLACE WITH YOUR OWN PATHS. Typically, nanopb would go in your project's components directory. Like so:
+##  
+##
+# execute_process(COMMAND ${PYTHON_EXECUTABLE} components/nanopb/generator/nanopb_generator.py shadow.proto
+#                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/components/device-shadow/protos)

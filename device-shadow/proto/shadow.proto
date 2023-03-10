@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-message shadow{
-	int32 red = 1;
-	int32 blue = 2;
-	int32 green = 3;
-	
-}

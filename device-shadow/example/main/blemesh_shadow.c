@@ -79,7 +79,7 @@ static void example_data_get_cb(struct bt_mesh_model *model, struct bt_mesh_msg_
 }
 
 static void ShadowCallback(void){
-    ESP_LOGI("MAIN", "Shadow updated %d %d %d", Shadow.red, Shadow.blue, Shadow.green);
+    ESP_LOGI("MAIN", "Shadow updated %d %d %d", Shadow.r, Shadow.g, Shadow.b);
 }
 
 
@@ -107,7 +107,7 @@ void app_main(void)
     }
 
     InitDeviceShadow(main_config);
-    printf("\n Shadow on init: %d %d %d \n", Shadow.blue, Shadow.red, Shadow.green);
+    printf("\n Shadow on init: %d %d %d \n", Shadow.b, Shadow.r, Shadow.g);
     
     
     ESP_LOGI("MAIN", "Starting");
