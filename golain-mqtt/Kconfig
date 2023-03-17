@@ -6,23 +6,23 @@ menu "Golain-MQTT Configuration"
         help
             URL of an mqtt broker which this example connects to.
 
-    config BROKER_BIN_SIZE_TO_SEND
-        # This option is not visible and is used only to set parameters for example tests
-        # Here we configure the data size to send and to be expected in the python script
-        int
-        default 20000
+    config MQTT_PORT
+        int "MQTT Port"
+        default 8083
+        help 
+            Port number for the mqtt broker
 
-    config MESSAGE_NAMES
-        string "Protobuff message names"
-        default "shadow,end"
-        help
-            A comma separated list of you protobuf message names
+    # config MESSAGE_NAMES
+    #     string "Protobuff message names"
+    #     default "shadow,end"
+    #     help
+    #         A comma separated list of you protobuf message names
 
-    config NUMBER_OF_MESSAGES
-        int "Number of proto messages"
-        default 2
-        help
-            Number of protobuf messages
+    # config NUMBER_OF_MESSAGES
+    #     int "Number of proto messages"
+    #     default 2
+    #     help
+    #         Number of protobuf messages
 
     config TOPIC_ROOT   
         string "Path to the root topic for your project"

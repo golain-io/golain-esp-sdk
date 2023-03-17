@@ -20,13 +20,11 @@
 #include "esp_tls.h"
 #include <sys/param.h>
 
-#define ROOT                "/b06f_6727/"
-#define DEVICE_ID           "70121cb9-47dd-49d1-99d7-0440849470ca"
-#define DEVICE_NAME         "LOG_Tester"
+
 #define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow"
 #define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
 #define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
-#define MAKESTR(x)           #x
+
 
 #define TAG "GOLAIN MQTT"
 
@@ -134,41 +132,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         
         ESP_LOGW(TAG,"%s %s", topics[0], topics[1]);
         
-        /*
-        // splitintoarray(rcv_topic, split_topic, "/");
-        
-        // ESP_LOGI( TAG, "Last topic %s", split_topic[2]);
-
-        // //Everything below should be a custom function
-        // int topic_num = string_switch(topics, CONFIG_NUMBER_OF_MESSAGES, split_topic[2]);
-        // //ESP_LOGI(TAG, "%d", topic_num);       
-        // switch(topic_num){
-        //     case 0:
-        //         ESP_LOGI(TAG, "Shadow topic");
-        //             char * rcv_data = event->data;
-        //             switch(rcv_data[0]){
-        //                 case 't': 
-        //                 postData("r", 1, rcv_topic, client);
-        //                 ESP_LOGI(TAG, "T received");
-        //                 break;
-        //                 case 'r':
-        //                 postData("R received", 10, rcv_topic, client);
-        //                 ESP_LOGI(TAG, "R received");
-        //                 break;
-        //                 default:
-        //                 ESP_LOGI(TAG, "Invalid received");
-        //                 break;
-        //             }
-        //     break;
-        //     case 1:
-        //         ESP_LOGI(TAG, "Ended topic");
-        //     break;
-        //     default:
-        //         ESP_LOGW(TAG, "Bad topic");
-        //     break;
-
-        //}
-        //Up till here */
+     
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -193,13 +157,9 @@ void mqtt_app_start(void){
     
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = CONFIG_BROKER_URI,
-        .port = 8083,
-        //.username = "Test-ESP-Golain",
-        //.password = "TestESP01",  
-
+        .port = CONFIG_MQTT_PORT,
         .client_cert_pem = (const char*)mqtt_device_cert_pem_start,
         .client_key_pem = (const char*)mqtt_device_pvt_key_pem_start,
-        ///.cert_pem = (const char*)mqtt_broker_cert_pem_start,
         .client_id = DEVICE_NAME,
 
 
@@ -235,10 +195,12 @@ int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic){
     return -1;
 }
 
-esp_err_t postToDDTopic(uint8_t * data, int length){
-    int post_err = esp_mqtt_client_publish(client, DEVICE_DATA_TOPIC, (char*)data, length, 0, 0);
 
-    ESP_LOGI(TAG, "Writting to device data %s  Returned: %d", DEVICE_DATA_TOPIC, post_err);
+esp_err_t postShadow(uint8_t * data, int length){
+    
+    int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC, (char*)data, length, 0, 0);
+
+    ESP_LOGI(TAG, "Writting to device data %s  Returned: %d", DEVICE_SHADOW_TOPIC, post_err);
 
     return (esp_err_t) post_err;
 
@@ -248,10 +210,10 @@ esp_err_t postToDDTopic(uint8_t * data, int length){
 
 
 void postData(char * data, size_t length, char * topic){
-    char topic_to_publish[64];
+    char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(myTopic)];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, topic);
     esp_mqtt_client_publish(client, DEVICE_DATA_TOPIC, data, length, 0, 0);
-    ESP_LOGI(TAG, "Published : %s \n\r To topic: %s", data, topic);
+    ESP_LOGI(TAG, "Published to topic: %s", data, topic);
 }
 
 
@@ -259,8 +221,8 @@ void postData(char * data, size_t length, char * topic){
 
 void postDeviceDataPoint(char* struct_name, pb_msgdesc_t* descriptor, void * data, uint32_t length){
     char * topic = (char*)calloc((sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)), sizeof(char));
-    // strcat(topic, DEVICE_SHADOW_TOPIC);
-    // strcat(topic, struct_name);
+
+
     sprintf(topic, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
     
     ESP_LOGI(TAG, "Topic: %s", topic);

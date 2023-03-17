@@ -28,7 +28,7 @@
 
 void mqtt_app_start();
 
-esp_err_t postToDDTopic(uint8_t * data, int length);
+esp_err_t postShadow(uint8_t * data, int length);
 
 void postData(char * data, size_t length, char * topic);
 
