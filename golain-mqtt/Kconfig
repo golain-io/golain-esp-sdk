@@ -2,7 +2,7 @@ menu "Golain-MQTT Configuration"
 
     config BROKER_URI
         string "Broker URL"
-        default "mqtts://mqtt.eclipseprojects.io:8883"
+        default "mqtts://dev.golain.io"
         help
             URL of an mqtt broker which this example connects to.
 
@@ -26,9 +26,12 @@ menu "Golain-MQTT Configuration"
 
     config TOPIC_ROOT   
         string "Path to the root topic for your project"
-        default "malhaar-test/Test-One/"
+        default "<Insert root topic>"
         
-
+    config DEVICE_NAME
+        string "Name of your device"
+        default "<Insert device name>"
+    
     config ESP_WIFI_SSID
                 string "WiFi SSID"
                 default "myssid"
