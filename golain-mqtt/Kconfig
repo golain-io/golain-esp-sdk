@@ -1,4 +1,7 @@
-menu "Golain-MQTT Configuration"
+menu "Golain MQTT Configuration"
+    config MQTT_PORT
+        int "URI port for the mqtt broker"
+        default 8083
 
     config BROKER_URI
         string "Broker URL"
@@ -6,12 +9,7 @@ menu "Golain-MQTT Configuration"
         help
             URL of an mqtt broker which this example connects to.
 
-    config BROKER_BIN_SIZE_TO_SEND
-        # This option is not visible and is used only to set parameters for example tests
-        # Here we configure the data size to send and to be expected in the python script
-        int
-        default 20000
-
+    
     config MESSAGE_NAMES
         string "Protobuff message names"
         default "shadow,end"

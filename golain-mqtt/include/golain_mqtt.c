@@ -19,14 +19,15 @@
 #include "mqtt_client.h"
 #include "esp_tls.h"
 #include <sys/param.h>
+#include "shadow_helper.h"
+#include "Demo-Shadow.pb.h"
 
-#define ROOT                "/b06f_6727/"
-#define DEVICE_ID           "70121cb9-47dd-49d1-99d7-0440849470ca"
-#define DEVICE_NAME         "LOG_Tester"
-#define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow"
+#define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow" 
+#define DEVICE_SHADOW_TOPIC_R  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/r"
+#define DEVICE_SHADOW_TOPIC_W  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/w"
 #define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
 #define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
-#define MAKESTR(x)           #x
+
 
 #define TAG "GOLAIN MQTT"
 
@@ -35,7 +36,7 @@ static uint8_t dataRcvFlag = 0;
 static char * topics[CONFIG_NUMBER_OF_MESSAGES];
 char * split_topic[3]; 
 
-
+extern Shadow Shadow01;
 
 esp_mqtt_client_handle_t client; 
 static char dirtyTopicArray[96]; //We have a lot of memory screw it
@@ -80,7 +81,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     client = event->client;
     int msg_id;
-    char * rcv_topic = (char *)malloc(10);
+    //char * rcv_topic = (char *)malloc(10);
     char temp_names[] = CONFIG_MESSAGE_NAMES;
     splitintoarray(temp_names, topics, ",");    
     switch ((esp_mqtt_event_id_t)event_id) {
@@ -95,8 +96,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         msg_id = esp_mqtt_client_subscribe(client, DEVICE_SHADOW_TOPIC, 0);
         ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
         
-        msg_id = esp_mqtt_client_subscribe(client, DEVICE_DATA_TOPIC, 0);
-        ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
+        // msg_id = esp_mqtt_client_subscribe(client, DEVICE_DATA_TOPIC, 0);
+        // ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
         
         
         break;
@@ -107,8 +108,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        postData("tay", 3 ,DEVICE_SHADOW_TOPIC);
-        // msg_id = esp_mqtt_client_publish(client, "/shadow", "data", 0, 0, 0);
+        //postData("tay", 3 ,DEVICE_SHADOW_TOPIC);
+        // msg_id = esp_mqtt_client_publish(client, "/Shadow", "data", 0, 0, 0);
         // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
@@ -118,57 +119,43 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_DATA:
+        
+        
+        if(strncmp(event->topic, DEVICE_SHADOW_TOPIC_R, event->topic_len)==0){
+            
+            uint8_t shadowreadbuff[Shadow_size];
+            pb_ostream_t ostream = pb_ostream_from_buffer(shadowreadbuff, Shadow_size);
+            pb_encode(&ostream, Shadow_fields, &Shadow01);
+            postShadow(shadowreadbuff, ostream.bytes_written);
+
+        }
+        else if(strncmp(event->topic, DEVICE_SHADOW_TOPIC_W, event->topic_len)==0){
+            uint8_t shadowwritebuff[event->data_len];
+            memcpy(shadowwritebuff, event->data, event->data_len);
+            pb_istream_t istream = pb_istream_from_buffer(shadowwritebuff,event->data_len);
+            if(!pb_decode(&istream, Shadow_fields, &Shadow01)){
+                ESP_LOGE(TAG, "Decoding failed. E: %s", istream.errmsg);
+            }
+        }
+        else{
         dataRcvFlag = 1;
         memcpy(dirtyTopicArray, event->topic, event->topic_len);
         rcvTopicLength = event->topic_len;
 
         memcpy(dirtyDataArray, event->data, event->data_len);
         rcvDataLength = event->data_len;
-        
-        //ESP_LOGI(TAG, "MQTT_EVENT_DATA Topic size: %d", event->topic_len);
-        rcv_topic = (char*)calloc((event->topic_len), sizeof(char));
-        memcpy(rcv_topic, event->topic, event->topic_len);
+        }
 
-        printf("TOPIC=%s\r\n", rcv_topic);
-        printf("DATA=%.*s\r\n", event->data_len, event->data);
-        
-        ESP_LOGW(TAG,"%s %s", topics[0], topics[1]);
-        
-        /*
-        // splitintoarray(rcv_topic, split_topic, "/");
-        
-        // ESP_LOGI( TAG, "Last topic %s", split_topic[2]);
+        // //ESP_LOGI(TAG, "MQTT_EVENT_DATA Topic size: %d", event->topic_len);
+        // rcv_topic = (char*)calloc((event->topic_len), sizeof(char));
+        // memcpy(rcv_topic, event->topic, event->topic_len);
 
-        // //Everything below should be a custom function
-        // int topic_num = string_switch(topics, CONFIG_NUMBER_OF_MESSAGES, split_topic[2]);
-        // //ESP_LOGI(TAG, "%d", topic_num);       
-        // switch(topic_num){
-        //     case 0:
-        //         ESP_LOGI(TAG, "Shadow topic");
-        //             char * rcv_data = event->data;
-        //             switch(rcv_data[0]){
-        //                 case 't': 
-        //                 postData("r", 1, rcv_topic, client);
-        //                 ESP_LOGI(TAG, "T received");
-        //                 break;
-        //                 case 'r':
-        //                 postData("R received", 10, rcv_topic, client);
-        //                 ESP_LOGI(TAG, "R received");
-        //                 break;
-        //                 default:
-        //                 ESP_LOGI(TAG, "Invalid received");
-        //                 break;
-        //             }
-        //     break;
-        //     case 1:
-        //         ESP_LOGI(TAG, "Ended topic");
-        //     break;
-        //     default:
-        //         ESP_LOGW(TAG, "Bad topic");
-        //     break;
-
-        //}
-        //Up till here */
+        // printf("TOPIC=%s\r\n", rcv_topic);
+        // printf("DATA=%.*s\r\n", event->data_len, event->data);
+        
+        // ESP_LOGW(TAG,"%s %s", topics[0], topics[1]);
+        
+     
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -193,14 +180,10 @@ void mqtt_app_start(void){
     
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = CONFIG_BROKER_URI,
-        .port = 8083,
-        //.username = "Test-ESP-Golain",
-        //.password = "TestESP01",  
-
+        .port = CONFIG_MQTT_PORT,
         .client_cert_pem = (const char*)mqtt_device_cert_pem_start,
         .client_key_pem = (const char*)mqtt_device_pvt_key_pem_start,
-        ///.cert_pem = (const char*)mqtt_broker_cert_pem_start,
-        .client_id = DEVICE_NAME,
+        .client_id = CONFIG_DEVICE_NAME,
 
 
     };
@@ -235,10 +218,12 @@ int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic){
     return -1;
 }
 
-esp_err_t postToDDTopic(uint8_t * data, int length){
-    int post_err = esp_mqtt_client_publish(client, DEVICE_DATA_TOPIC, (char*)data, length, 0, 0);
 
-    ESP_LOGI(TAG, "Writting to device data %s  Returned: %d", DEVICE_DATA_TOPIC, post_err);
+esp_err_t postShadow(uint8_t * data, int length){
+    
+    int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC, (char*)data, length, 0, 0);
+
+    ESP_LOGI(TAG, "Writting to device data %s  Returned: %d", DEVICE_SHADOW_TOPIC, post_err);
 
     return (esp_err_t) post_err;
 
@@ -248,19 +233,19 @@ esp_err_t postToDDTopic(uint8_t * data, int length){
 
 
 void postData(char * data, size_t length, char * topic){
-    char topic_to_publish[64];
+    char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(topic)];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, topic);
-    esp_mqtt_client_publish(client, DEVICE_DATA_TOPIC, data, length, 0, 0);
-    ESP_LOGI(TAG, "Published : %s \n\r To topic: %s", data, topic);
+    esp_mqtt_client_publish(client, topic_to_publish, data, length, 0, 0);
+    ESP_LOGI(TAG, "Published to topic: %s", topic);
 }
 
 
 
 
-void postDeviceDataPoint(char* struct_name, pb_msgdesc_t* descriptor, void * data, uint32_t length){
+void postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
     char * topic = (char*)calloc((sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)), sizeof(char));
-    // strcat(topic, DEVICE_SHADOW_TOPIC);
-    // strcat(topic, struct_name);
+
+
     sprintf(topic, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
     
     ESP_LOGI(TAG, "Topic: %s", topic);
