@@ -42,15 +42,41 @@ char blankArray[96];
         uint8_t rcvdatalen = 0;
         uint8_t rcvtpclen = 0; 
 
-// void Demo_Task(void){
-        
-        
-       
-// }
+
 
 cell Cell = cell_init_default;
 
 uint8_t protobuff[cell_size];
+
+TaskHandle_t myTaskHandle;
+
+
+void ShadowTask(void){
+    P_LOG_I(TAG, "Shadow updated");
+}
+
+
+
+ShadowCfg myConfig= {
+.shadow_update_cb = ShadowTask,
+.clean_on_error = 0
+
+};
+
+void Demo_Task(void){
+        while(1){
+            Cell.voltage = ((rand()%(2200-200+1)) +200)*0.1;
+            Cell.demo_test_int = (int32_t)rand();
+            pb_ostream_t  ostream = pb_ostream_from_buffer(protobuff, sizeof(protobuff));
+            pb_encode( &ostream, cell_fields, &Cell);
+            
+            postDeviceDataPoint("Demo-DP", cell_fields, &Cell, cell_size);            
+            
+            vTaskDelay(1000/ portTICK_RATE_MS);
+        }
+        
+       
+ }
 
 void app_main(void)
 {   
@@ -71,33 +97,8 @@ void app_main(void)
 
     mqtt_app_start();
 
-    //xTaskCreate(Demo_Task, "Demo_Task", 4096, NULL, 10, &myTaskHandle);
-    while(1){
-        uint32_t timimg = 0;
-        
-        if(checkDataEvent()){
-            getTopic(blankArray, &rcvtpclen);
-            getData(blankArray2, &rcvdatalen);
-            ESP_LOGI(TAG, "Received Topic: %.*s\r\n",rcvtpclen , blankArray);
-            ESP_LOGI(TAG, "Received Topic: %.*s\r\n", rcvdatalen, blankArray2);
-        }
-        else{
-            Cell.voltage = 3.33;
-            Cell.temperature = (float)rand()*0.95;
-            pb_ostream_t  ostream = pb_ostream_from_buffer(protobuff, sizeof(protobuff));
-            pb_encode( &ostream, cell_fields, &Cell);
-            postToDDTopic(protobuff, ostream.bytes_written);
-            
-            vTaskDelay(1500/ portTICK_RATE_MS);
-
-            postDeviceDataPoint("TestPoint", cell_fields, &Cell, cell_size);            
-
-            
-
-        }
-        vTaskDelay(1500/ portTICK_RATE_MS);
-        
-    }
+    xTaskCreate(Demo_Task, "Demo_Task", 4096, NULL, 1, &myTaskHandle);
+    
  
 }
 
