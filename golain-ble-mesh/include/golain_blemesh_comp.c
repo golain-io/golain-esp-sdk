@@ -32,7 +32,12 @@ void (*bt_control_get_cb)(struct bt_mesh_model *model,
 void (*bt_control_set_cb)(struct bt_mesh_model *model,
                            struct bt_mesh_msg_ctx *ctx,
                            struct os_mbuf *buf);
-                           
+
+void (*bt_user_assoc_cb)(struct bt_mesh_model *model,
+                           struct bt_mesh_msg_ctx *ctx,
+                           struct os_mbuf *buf);
+
+
 #define BT_DBG_ENABLED (MYNEWT_VAL(BLE_MESH_DEBUG))
 
 /* Company ID */
@@ -165,55 +170,13 @@ static struct bt_mesh_model root_models[] = {
 
 static struct bt_mesh_model_pub vnd_model_pub;
 
-/*
-static void vnd_model_recv(struct bt_mesh_model *model,
-                           struct bt_mesh_msg_ctx *ctx,
-                           struct os_mbuf *buf)
-{
-    struct os_mbuf *msg = NET_BUF_SIMPLE(3);
-
-    console_printf("#vendor-model-recv - 1\n");
-
-    console_printf("data:%s len:%d\n", bt_hex(buf->om_data, buf->om_len),
-                   buf->om_len);
-
-    bt_mesh_model_msg_init(msg, BT_MESH_MODEL_OP_3(0x01, CID_VENDOR));
-    os_mbuf_append(msg, buf->om_data, buf->om_len);
-
-    if (bt_mesh_model_send(model, ctx, msg, NULL, NULL)) {
-        console_printf("#vendor-model-recv: send rsp failed\n");
-    }
-
-    os_mbuf_free_chain(msg);
-}
-
-static void vnd_model_recv2(struct bt_mesh_model *model,
-                           struct bt_mesh_msg_ctx *ctx,
-                           struct os_mbuf *buf)
-{
-    struct os_mbuf *msg = NET_BUF_SIMPLE(3);
-
-    console_printf("#vendor-model-recv- 2\n");
-
-    console_printf("DATA:%s LENGTH:%d\n", bt_hex(buf->om_data, buf->om_len),
-                   buf->om_len);
-
-    bt_mesh_model_msg_init(msg, BT_MESH_MODEL_OP_3(0x01, CID_VENDOR));
-    os_mbuf_append(msg, buf->om_data, buf->om_len);
-
-    if (bt_mesh_model_send(model, ctx, msg, NULL, NULL)) {
-        console_printf("#vendor-model-recv: send rsp failed\n");
-    }
-
-    os_mbuf_free_chain(msg);
-}*/
-
 //I really hate doping it this way but there doesn't seem to be any other choice
 static void callback_1(struct bt_mesh_model *model,
                            struct bt_mesh_msg_ctx *ctx,
                            struct os_mbuf *buf){
     bt_data_get_cb(model,ctx, buf);
 }
+
 static void callback_2(struct bt_mesh_model *model,
                            struct bt_mesh_msg_ctx *ctx,
                            struct os_mbuf *buf){
@@ -226,21 +189,33 @@ static void callback_3(struct bt_mesh_model *model,
     bt_control_set_cb(model,ctx, buf); 
 }
 
-static const struct bt_mesh_model_op vnd_model_op[] = {
+static void callback_4(struct bt_mesh_model *model,
+                           struct bt_mesh_msg_ctx *ctx,
+                           struct os_mbuf *buf){
+    bt_user_assoc_cb(model,ctx, buf);
+}
+
+static const struct bt_mesh_model_op data_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x00, CID_VENDOR), 0, callback_1},
         BT_MESH_MODEL_OP_END,
 };
 
-static const struct bt_mesh_model_op vnd_model_op2[] = {
+static const struct bt_mesh_model_op cntrl_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x01, CID_VENDOR), 0, callback_2 },       
         { BT_MESH_MODEL_OP_3(0x02, CID_VENDOR), 0, callback_3 },
         BT_MESH_MODEL_OP_END,
 };
 
+static const struct bt_mesh_model_op cntrl_plane_op[] = {
+        { BT_MESH_MODEL_OP_3(0x03, CID_VENDOR), 0, callback_4 },       
+        BT_MESH_MODEL_OP_END,
+};
+
+
 static struct bt_mesh_model vnd_models[] = {
-    BT_MESH_MODEL_VND(CID_VENDOR, 0x1111, vnd_model_op,
+    BT_MESH_MODEL_VND(CID_VENDOR, 0x1111, data_plane_op,
               &vnd_model_pub, NULL),
-    BT_MESH_MODEL_VND(CID_VENDOR, 0x2222, vnd_model_op2,
+    BT_MESH_MODEL_VND(CID_VENDOR, 0x2222, cntrl_plane_op,
               &vnd_model_pub, NULL),
 };
 
@@ -346,6 +321,7 @@ esp_err_t bt_mesh_custom_start(MeshConfig ip_conf){
     bt_control_get_cb = ip_conf.user_control_get_cb;
     bt_control_set_cb = ip_conf.user_control_set_cb;
     bt_data_get_cb = ip_conf.user_data_get_cb;
+    bt_user_assoc_cb = ip_conf.user_user_assoc_cb;
 
 
         /* Initialize NVS — it is used to store PHY calibration data */

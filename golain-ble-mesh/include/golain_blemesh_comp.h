@@ -29,6 +29,9 @@ typedef struct MeshConfig{
     /// @brief Callback for control set
     void (*user_control_set_cb)(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx, struct os_mbuf *buf);
    
+    /// @brief Callback for user association 
+    void (*user_user_assoc_cb)(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx, struct os_mbuf *buf);
+   
 } MeshConfig;
 
 /// @brief Function to send a uint8_t buffer via the BLE mesh. Should only be used inside BLE Mesh callbacks that you set inside MeshConfig. model, ctx and buf are parameters passed by the Mesh.
