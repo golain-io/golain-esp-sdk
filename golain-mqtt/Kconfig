@@ -9,19 +9,6 @@ menu "Golain MQTT Configuration"
         help
             URL of an mqtt broker which this example connects to.
 
-    
-    config MESSAGE_NAMES
-        string "Protobuff message names"
-        default "shadow,end"
-        help
-            A comma separated list of you protobuf message names
-
-    config NUMBER_OF_MESSAGES
-        int "Number of proto messages"
-        default 2
-        help
-            Number of protobuf messages
-
     config TOPIC_ROOT   
         string "Path to the root topic for your project"
         default "<Insert root topic>"

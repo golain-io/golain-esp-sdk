@@ -56,9 +56,16 @@ int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic);
  * @param struct_name char* The name of the struct. The topic where data will be published will be ```{DEVICE_DATA_TOPIC}/<struct_name>```
  * @param descriptor The proto buffer fields. It should look like ```<struct_name>_fields```
  * @param data pointer to the protobuffer struct to be encoded and postedc
- * @param length Length of Device Data struct   
+ * @param length Length of Device Data struct  
+ * @returns the error code in the form of esp_err_t. 0 on success  
  */
-void postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length);
+esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length);
+
+/// @brief Post data to user association topic on the golain platform
+/// @param UAData User association data
+/// @param len Length of the data to be sent
+/// @returns the error code in the form of esp_err_t. 0 on success
+esp_err_t postUserAssoc(void * UAData, size_t len)
 
 /// @brief Check if a subscribed topic has data posted
 ///   

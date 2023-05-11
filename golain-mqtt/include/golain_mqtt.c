@@ -27,6 +27,7 @@
 #define DEVICE_SHADOW_TOPIC_W  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/w"
 #define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
 #define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
+#define USER_ASSOC_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/user"
 
 
 #define TAG "GOLAIN MQTT"
@@ -223,7 +224,7 @@ esp_err_t postShadow(uint8_t * data, int length){
     
     int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC, (char*)data, length, 0, 0);
 
-    ESP_LOGI(TAG, "Writting to device data %s  Returned: %d", DEVICE_SHADOW_TOPIC, post_err);
+    ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", DEVICE_SHADOW_TOPIC, post_err);
 
     return (esp_err_t) post_err;
 
@@ -232,7 +233,7 @@ esp_err_t postShadow(uint8_t * data, int length){
 
 
 
-void postData(char * data, size_t length, char * topic){
+void postData(char * data, size_t length, char * topic){ //Post already encoded datat point
     char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(topic)];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, topic);
     esp_mqtt_client_publish(client, topic_to_publish, data, length, 0, 0);
@@ -242,10 +243,9 @@ void postData(char * data, size_t length, char * topic){
 
 
 
-void postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
+esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
+    esp_err_t err;    
     char * topic = (char*)calloc((sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)), sizeof(char));
-
-
     sprintf(topic, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
     
     ESP_LOGI(TAG, "Topic: %s", topic);
@@ -254,11 +254,20 @@ void postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void
     bool status = pb_encode(&stream, descriptor, data);
     if(!status){
         ESP_LOGE(TAG, "Encoding failed: %s", PB_GET_ERROR(&stream));
+        err = ESP_FAIL;
+        return err;
     }
     ESP_LOGI(TAG, "Encoded %d bytes", stream.bytes_written);
-    esp_mqtt_client_publish(client, topic, (char*)buffer, stream.bytes_written, 0, 0);
+    err = esp_mqtt_client_publish(client, topic, (char*)buffer, stream.bytes_written, 0, 0);
+    return err;
 }
 
+esp_err_t postUserAssoc(void * UAData, size_t len){
+    esp_err_t err;
+    ESP_LOGD(TAG, "Publishing : %s", (char*)UAData)
+    err = esp_mqtt_client_publish(client, USER_ASSOC_TOPIC, (char*)UAData, len, 0, 0);
+    return err;
+}
 
 
 
@@ -271,14 +280,10 @@ uint8_t checkDataEvent(void){
 }
 
 
-
-
 void getTopic( char * dest_topic_buffer, uint8_t * topiclen){
     memcpy(dest_topic_buffer, dirtyTopicArray, rcvTopicLength);
     memcpy(topiclen, &rcvTopicLength, sizeof(uint8_t));
 }
-
-
 
 
 void getData( char * dest_data_buffer, uint8_t * datalen){
