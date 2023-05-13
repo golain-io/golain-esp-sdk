@@ -206,7 +206,7 @@ static const struct bt_mesh_model_op cntrl_plane_op[] = {
         BT_MESH_MODEL_OP_END,
 };
 
-static const struct bt_mesh_model_op cntrl_plane_op[] = {
+static const struct bt_mesh_model_op UA_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x03, CID_VENDOR), 0, callback_4 },       
         BT_MESH_MODEL_OP_END,
 };
@@ -217,6 +217,9 @@ static struct bt_mesh_model vnd_models[] = {
               &vnd_model_pub, NULL),
     BT_MESH_MODEL_VND(CID_VENDOR, 0x2222, cntrl_plane_op,
               &vnd_model_pub, NULL),
+    BT_MESH_MODEL_VND(CID_VENDOR, 0x3333, UA_plane_op,
+              &vnd_model_pub, NULL),
+    
 };
 
 static struct bt_mesh_elem elements[] = {
