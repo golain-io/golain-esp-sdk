@@ -65,7 +65,7 @@ esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor,
 /// @param UAData User association data
 /// @param len Length of the data to be sent
 /// @returns the error code in the form of esp_err_t. 0 on success
-esp_err_t postUserAssoc(void * UAData, size_t len)
+esp_err_t postUserAssoc(void * UAData, size_t len);
 
 /// @brief Check if a subscribed topic has data posted
 ///   

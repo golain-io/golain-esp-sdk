@@ -20,7 +20,7 @@
 #include "esp_tls.h"
 #include <sys/param.h>
 #include "shadow_helper.h"
-#include "Demo-Shadow.pb.h"
+#include "shadow.pb.h"
 
 #define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow" 
 #define DEVICE_SHADOW_TOPIC_R  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/r"
@@ -34,10 +34,10 @@
 
 
 static uint8_t dataRcvFlag = 0;
-static char * topics[CONFIG_NUMBER_OF_MESSAGES];
+
 char * split_topic[3]; 
 
-extern Shadow Shadow01;
+extern Shadow shadow;
 
 esp_mqtt_client_handle_t client; 
 static char dirtyTopicArray[96]; //We have a lot of memory screw it
@@ -71,7 +71,6 @@ void splitintoarray(char * from_string, char ** str_array, char * split_char){
     for(int i = 0; i< 3-1; i++){
         str_array[i+1] = strtok(NULL, split_char);
     }
-    //ESP_LOGI("Splitter", "Split string");
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
@@ -82,17 +81,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     client = event->client;
     int msg_id;
-    //char * rcv_topic = (char *)malloc(10);
-    char temp_names[] = CONFIG_MESSAGE_NAMES;
-    splitintoarray(temp_names, topics, ",");    
+    //char * rcv_topic = (char *)malloc(10);   
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         
-        for(int i = 0; i<(CONFIG_NUMBER_OF_MESSAGES-1); i++){
-        //char mqtt_root[64] = CONFIG_TOPIC_ROOT;
-        //strcat(mqtt_root, topics[0]);
-        }
+
         
         msg_id = esp_mqtt_client_subscribe(client, DEVICE_SHADOW_TOPIC, 0);
         ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
@@ -126,7 +120,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             
             uint8_t shadowreadbuff[Shadow_size];
             pb_ostream_t ostream = pb_ostream_from_buffer(shadowreadbuff, Shadow_size);
-            pb_encode(&ostream, Shadow_fields, &Shadow01);
+            pb_encode(&ostream, Shadow_fields, &shadow);
             postShadow(shadowreadbuff, ostream.bytes_written);
 
         }
@@ -134,7 +128,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             uint8_t shadowwritebuff[event->data_len];
             memcpy(shadowwritebuff, event->data, event->data_len);
             pb_istream_t istream = pb_istream_from_buffer(shadowwritebuff,event->data_len);
-            if(!pb_decode(&istream, Shadow_fields, &Shadow01)){
+            if(!pb_decode(&istream, Shadow_fields, &shadow)){
                 ESP_LOGE(TAG, "Decoding failed. E: %s", istream.errmsg);
             }
         }
@@ -264,7 +258,7 @@ esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor,
 
 esp_err_t postUserAssoc(void * UAData, size_t len){
     esp_err_t err;
-    ESP_LOGD(TAG, "Publishing : %s", (char*)UAData)
+    ESP_LOGD(TAG, "Publishing : %s", (char*)UAData);
     err = esp_mqtt_client_publish(client, USER_ASSOC_TOPIC, (char*)UAData, len, 0, 0);
     return err;
 }

@@ -4,6 +4,17 @@
 #include "nvs_flash.h"
 #include "freertos/FreeRTOSConfig.h"
 
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_system.h"
+#include "esp_wifi.h"
+#include "esp_event.h"
+
+#include "lwip/err.h"
+#include "lwip/sys.h"
+
 //BLE Includes
 
 #include "esp_nimble_hci.h"
@@ -18,7 +29,33 @@
 
 #include "golain_blemesh_comp.h"
 
-static const char *tag = "NimBLE_MESH";
+
+#if CONFIG_ESP_WIFI_AUTH_OPEN
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_OPEN
+#elif CONFIG_ESP_WIFI_AUTH_WEP
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WEP
+#elif CONFIG_ESP_WIFI_AUTH_WPA_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA2_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA_WPA2_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_WPA2_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA3_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA3_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA2_WPA3_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_WPA3_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WAPI_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
+#endif
+
+#define WIFI_CONNECTED_BIT BIT0
+#define WIFI_FAIL_BIT      BIT1
+#define tag                "NimBLE_MESH"
+
+static EventGroupHandle_t s_wifi_event_group;
+
+
+
 void ble_store_config_init(void);
 
 void (*bt_data_get_cb)(struct bt_mesh_model *model,
@@ -195,6 +232,105 @@ static void callback_4(struct bt_mesh_model *model,
     bt_user_assoc_cb(model,ctx, buf);
 }
 
+
+
+static void event_handler(void* arg, esp_event_base_t event_base,
+                                int32_t event_id, void* event_data)
+{
+    int s_retry_num = 0;
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (s_retry_num < 5) { //Hard coding numnber of retries
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(tag, "retry to connect to the AP");
+        } else {
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+        }
+        ESP_LOGI(tag,"connect to the AP fail");
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI(tag, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        s_retry_num = 0;
+        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+    }
+}
+
+void wifi_callback(struct bt_mesh_model *model,
+                           struct bt_mesh_msg_ctx *ctx,
+                           struct os_mbuf *buf){
+    ESP_LOGI(tag, "WIFI CB");
+    uint8_t recvbuff[100];
+    memcpy(recvbuff, buf->om_data, buf->om_len);
+    send_message(model, ctx, buf, recvbuff, buf->om_len);
+    const char split_sym = ',';
+    uint8_t * newssid = (uint8_t*)strtok((char*)recvbuff, &split_sym);
+    uint8_t * newpass = (uint8_t*)strtok(NULL, &split_sym);
+
+
+
+    s_wifi_event_group = xEventGroupCreate();
+
+    // esp_netif_create_default_wifi_sta();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    esp_event_handler_instance_t instance_any_id;
+    esp_event_handler_instance_t instance_got_ip;
+    esp_event_handler_instance_register(WIFI_EVENT,ESP_EVENT_ANY_ID, &event_handler, NULL,  &instance_any_id);
+    esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL, &instance_got_ip);
+
+    ESP_LOGI(tag, "ssid: %s password: %s", newssid, newpass);
+
+    esp_wifi_disconnect(); //Disconnects previous wifi
+    
+
+     wifi_config_t wifi_config = {
+        .sta = {
+            // .ssid = newssid,
+            // .password = newpass,
+            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
+             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
+             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
+	     * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
+             */
+            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+        },
+    };
+    memcpy(wifi_config.sta.ssid, newssid, 32);
+    memcpy(wifi_config.sta.password, newssid, 64);
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(tag, "New wifi creds tried");
+
+
+    /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
+     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
+    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
+            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+            pdFALSE,
+            pdFALSE,
+            portMAX_DELAY);
+
+    /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
+     * happened. */
+    if (bits & WIFI_CONNECTED_BIT) {
+        ESP_LOGI(tag, "connected to ap SSID:%s password:%s",
+                 newssid, newpass);
+    } else if (bits & WIFI_FAIL_BIT) {
+        ESP_LOGI(tag, "Failed to connect to SSID:%s, password:%s",
+                 newssid, newpass);
+    } else {
+        ESP_LOGE(tag, "UNEXPECTED EVENT");
+    }
+}
+
+
 static const struct bt_mesh_model_op data_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x00, CID_VENDOR), 0, callback_1},
         BT_MESH_MODEL_OP_END,
@@ -203,19 +339,23 @@ static const struct bt_mesh_model_op data_plane_op[] = {
 static const struct bt_mesh_model_op cntrl_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x01, CID_VENDOR), 0, callback_2 },       
         { BT_MESH_MODEL_OP_3(0x02, CID_VENDOR), 0, callback_3 },
+        { BT_MESH_MODEL_OP_3(0x04, CID_VENDOR), 0, wifi_callback },
         BT_MESH_MODEL_OP_END,
 };
 
-static const struct bt_mesh_model_op cntrl_plane_op[] = {
+static const struct bt_mesh_model_op UA_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x03, CID_VENDOR), 0, callback_4 },       
         BT_MESH_MODEL_OP_END,
 };
+
 
 
 static struct bt_mesh_model vnd_models[] = {
     BT_MESH_MODEL_VND(CID_VENDOR, 0x1111, data_plane_op,
               &vnd_model_pub, NULL),
     BT_MESH_MODEL_VND(CID_VENDOR, 0x2222, cntrl_plane_op,
+              &vnd_model_pub, NULL),
+    BT_MESH_MODEL_VND(CID_VENDOR, 0x3333, UA_plane_op,
               &vnd_model_pub, NULL),
 };
 
