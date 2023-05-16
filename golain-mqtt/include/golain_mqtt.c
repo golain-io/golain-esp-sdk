@@ -24,7 +24,7 @@
 
 #define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow" 
 #define DEVICE_SHADOW_TOPIC_R  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/r"
-#define DEVICE_SHADOW_TOPIC_W  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/w"
+#define DEVICE_SHADOW_TOPIC_U  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/u"
 #define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
 #define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
 #define USER_ASSOC_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/user"
@@ -88,13 +88,9 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         
 
         
-        msg_id = esp_mqtt_client_subscribe(client, DEVICE_SHADOW_TOPIC, 0);
+        msg_id = esp_mqtt_client_subscribe(client, DEVICE_SHADOW_TOPIC_R, 0);
         ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
-        
-        // msg_id = esp_mqtt_client_subscribe(client, DEVICE_DATA_TOPIC, 0);
-        // ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
-        
-        
+
         break;
 
     case MQTT_EVENT_DISCONNECTED:
@@ -103,9 +99,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        //postData("tay", 3 ,DEVICE_SHADOW_TOPIC);
-        // msg_id = esp_mqtt_client_publish(client, "/Shadow", "data", 0, 0, 0);
-        // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -116,7 +110,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_DATA:
         
         
-        if(strncmp(event->topic, DEVICE_SHADOW_TOPIC_R, event->topic_len)==0){
+        if(strncmp(event->topic, DEVICE_SHADOW_TOPIC_U, event->topic_len)==0){
             
             uint8_t shadowreadbuff[Shadow_size];
             pb_ostream_t ostream = pb_ostream_from_buffer(shadowreadbuff, Shadow_size);
@@ -124,13 +118,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             postShadow(shadowreadbuff, ostream.bytes_written);
 
         }
-        else if(strncmp(event->topic, DEVICE_SHADOW_TOPIC_W, event->topic_len)==0){
+        else if(strncmp(event->topic, DEVICE_SHADOW_TOPIC_R, event->topic_len)==0){
             uint8_t shadowwritebuff[event->data_len];
             memcpy(shadowwritebuff, event->data, event->data_len);
-            pb_istream_t istream = pb_istream_from_buffer(shadowwritebuff,event->data_len);
-            if(!pb_decode(&istream, Shadow_fields, &shadow)){
-                ESP_LOGE(TAG, "Decoding failed. E: %s", istream.errmsg);
-            }
+            UpdatewithBuff(shadowwritebuff, event->data_len);
         }
         else{
         dataRcvFlag = 1;
@@ -141,15 +132,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         rcvDataLength = event->data_len;
         }
 
-        // //ESP_LOGI(TAG, "MQTT_EVENT_DATA Topic size: %d", event->topic_len);
-        // rcv_topic = (char*)calloc((event->topic_len), sizeof(char));
-        // memcpy(rcv_topic, event->topic, event->topic_len);
-
-        // printf("TOPIC=%s\r\n", rcv_topic);
-        // printf("DATA=%.*s\r\n", event->data_len, event->data);
-        
-        // ESP_LOGW(TAG,"%s %s", topics[0], topics[1]);
-        
      
         break;
     case MQTT_EVENT_ERROR:
@@ -216,10 +198,11 @@ int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic){
 
 esp_err_t postShadow(uint8_t * data, int length){
     
-    int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC, (char*)data, length, 0, 0);
+    int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC_U, (char*)data, length, 0, 1);
 
-    ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", DEVICE_SHADOW_TOPIC, post_err);
-
+    if(post_err > 0){
+    ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", DEVICE_SHADOW_TOPIC_U, post_err);
+    }
     return (esp_err_t) post_err;
 
 }
@@ -239,10 +222,10 @@ void postData(char * data, size_t length, char * topic){ //Post already encoded 
 
 esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
     esp_err_t err;    
-    char * topic = (char*)calloc((sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)), sizeof(char));
-    sprintf(topic, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
-    
-    ESP_LOGI(TAG, "Topic: %s", topic);
+    char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)+5];
+    sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
+
+    ESP_LOGI(TAG, "Topic: %s", topic_to_publish);
     uint8_t buffer[length];
     pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
     bool status = pb_encode(&stream, descriptor, data);
@@ -252,13 +235,13 @@ esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor,
         return err;
     }
     ESP_LOGI(TAG, "Encoded %d bytes", stream.bytes_written);
-    err = esp_mqtt_client_publish(client, topic, (char*)buffer, stream.bytes_written, 0, 0);
+    err = esp_mqtt_client_publish(client, topic_to_publish, (char*)buffer, stream.bytes_written, 0, 0);
     return err;
 }
 
 esp_err_t postUserAssoc(void * UAData, size_t len){
     esp_err_t err;
-    ESP_LOGD(TAG, "Publishing : %s", (char*)UAData);
+    ESP_LOGW(TAG, "Publishing : %.*s", len, (char*)UAData);
     err = esp_mqtt_client_publish(client, USER_ASSOC_TOPIC, (char*)UAData, len, 0, 0);
     return err;
 }

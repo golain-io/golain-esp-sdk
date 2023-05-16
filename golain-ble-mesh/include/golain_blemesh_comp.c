@@ -344,7 +344,6 @@ static const struct bt_mesh_model_op cntrl_plane_op[] = {
 };
 
 static const struct bt_mesh_model_op UA_plane_op[] = {
-static const struct bt_mesh_model_op UA_plane_op[] = {
         { BT_MESH_MODEL_OP_3(0x03, CID_VENDOR), 0, callback_4 },       
         BT_MESH_MODEL_OP_END,
 };
