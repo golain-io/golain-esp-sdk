@@ -1,46 +1,9 @@
 #ifndef _GOLAIN_PERSISTENT_LOGS_H_
 #define _GOLAIN_PERSISTENT_LOGS_H_
 #include <stdio.h>
+#include <stdlib.h>
 #include "persistent_logs.h"
 
-/**
- * @brief - Logs and stores the Info statements given as a param
- *
- * @param tag A string which is used to trace the origin of log
- *
- * @param format Format in which data is to be logged and stored
- *
- * @param ... n Number of variable arguments that can be added as a part of log statement
- *
- */
-GOLAIN_LOG_I(tag, format, ...)
-P_LOG_I(tag, format, ##__VA_ARGS__)
-
-/**
- * @brief - Logs and stores the Error statements given as a param
- *
- * @param tag A string which is used to trace the origin of log
- *
- * @param format Format in which data is to be logged and stored
- *
- * @param ... n Number of variable arguments that can be added as a part of log statement
- *
- */
-GOLAIN_LOG_E(tag, format, ...)
-P_LOG_E(tag, format, ##__VA_ARGS__)
-
-/**
- * @brief - Logs and stores the Warning statements given as a param
- *
- * @param tag A string which is used to trace the origin of log
- *
- * @param format Format in which data is to be logged and stored
- *
- * @param ... n Number of variable arguments that can be added as a part of log statement
- *
- */
-GOLAIN_LOG_W(tag, format, ...)
-P_LOG_W(tag, format, ##__VA_ARGS__)
 
 /**
  * @brief This API reads the stored logs in protocol format and stores into the provided buffer.

@@ -22,41 +22,9 @@
 #include "shadow_helper.h"
 #include "shadow.pb.h"
 
-#define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow" 
-#define DEVICE_SHADOW_TOPIC_R  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/r"
-#define DEVICE_SHADOW_TOPIC_U  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/u"
-#define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
-#define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
-#define USER_ASSOC_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/user"
-
-
-#define TAG "GOLAIN MQTT"
-
-
-static uint8_t dataRcvFlag = 0;
-
-char * split_topic[3]; 
-
-extern Shadow shadow;
-
-esp_mqtt_client_handle_t client; 
-static char dirtyTopicArray[96]; //We have a lot of memory screw it
-static char dirtyDataArray[128]; //We have a lot of memory screw it
-
-static uint8_t rcvTopicLength = 0;
-static uint8_t rcvDataLength = 0;
 
 
 
-extern const char mqtt_device_cert_pem_start[] asm("_binary_device_cert_pem_start");
-extern const char mqtt_device_pvt_key_pem_start[] asm("_binary_device_private_key_pem_start");
-extern const char mqtt_broker_cert_pem_start[] asm("_binary_mqtt_broker_cert_pem_start");
-extern const unsigned char mqtt_root_ca_cert_pem_start[] asm("_binary_root_ca_cert_pem_start");
-
-extern const char mqtt_device_cert_pem_end[] asm("_binary_device_cert_pem_end");
-extern const char mqtt_device_pvt_key_pem_end[] asm("_binary_device_private_key_pem_end");
-extern const char mqtt_broker_cert_pem_end[] asm("_binary_mqtt_broker_cert_pem_end");
-extern const unsigned char mqtt_root_ca_cert_pem_end[] asm("_binary_root_ca_cert_pem_end");
 
 
 //-----------------------------------------------------------------------------------------------------------Only  used in this file
@@ -153,14 +121,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-void mqtt_app_start(void){
+void mqtt_app_start(uint8_t* client_id,uint8_t* client_cert,uint8_t* client_key){
     
     const esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = CONFIG_BROKER_URI,
-        .port = CONFIG_MQTT_PORT,
+        .uri = "dev.golain.io",
+        .port = 8083,
         .client_cert_pem = (const char*)mqtt_device_cert_pem_start,
         .client_key_pem = (const char*)mqtt_device_pvt_key_pem_start,
-        .client_id = CONFIG_DEVICE_NAME,
+        .client_id = client_id,
+        
 
 
     };
@@ -196,14 +165,14 @@ int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic){
 }
 
 
-esp_err_t postShadow(uint8_t * data, int length){
+golain_err_t postShadow(uint8_t * data, int length){
     
     int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC_U, (char*)data, length, 0, 1);
 
     if(post_err > 0){
     ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", DEVICE_SHADOW_TOPIC_U, post_err);
     }
-    return (esp_err_t) post_err;
+    return (golain_err_t) post_err;
 
 }
 
@@ -220,7 +189,7 @@ void postData(char * data, size_t length, char * topic){ //Post already encoded 
 
 
 
-esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
+golain_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
     esp_err_t err;    
     char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)+5];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
@@ -232,18 +201,18 @@ esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor,
     if(!status){
         ESP_LOGE(TAG, "Encoding failed: %s", PB_GET_ERROR(&stream));
         err = ESP_FAIL;
-        return err;
+        return (golain_err_t) err;
     }
     ESP_LOGI(TAG, "Encoded %d bytes", stream.bytes_written);
     err = esp_mqtt_client_publish(client, topic_to_publish, (char*)buffer, stream.bytes_written, 0, 0);
-    return err;
+    return (golain_err_t)err;
 }
 
-esp_err_t postUserAssoc(void * UAData, size_t len){
+golain_err_t postUserAssoc(void * UAData, size_t len){
     esp_err_t err;
     ESP_LOGW(TAG, "Publishing : %.*s", len, (char*)UAData);
     err = esp_mqtt_client_publish(client, USER_ASSOC_TOPIC, (char*)UAData, len, 0, 0);
-    return err;
+    return (golain_err_t)err;
 }
 
 

@@ -1,12 +1,5 @@
-# The following lines of boilerplate have to be in your project's CMakeLists
-# in this exact order for cmake to work correctly
-cmake_minimum_required(VERSION 3.16)
-
-
-    
-
-#set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/led_strip)
-
-
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-#project(onoff_server)
+idf_component_register(
+    SRC "*.c"
+    INCLUDE_DIRS "."
+    REQUIRES mqtt app_update
+)

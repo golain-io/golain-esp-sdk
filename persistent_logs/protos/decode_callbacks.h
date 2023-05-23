@@ -2,6 +2,7 @@
 #define DECODING_CALLBACKS_H
 
 #include "pb.h"
+#include "pb_decode.h"
 #include "string.h"
 
 

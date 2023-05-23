@@ -21,20 +21,53 @@
 #include "esp_tls.h"
 //#include "esp_ota_ops.h"
 #include <sys/param.h>
+#define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow" 
+#define DEVICE_SHADOW_TOPIC_R  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/r"
+#define DEVICE_SHADOW_TOPIC_U  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/u"
+#define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
+#define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
+#define USER_ASSOC_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/user"
+#include "golain_err.h"
+#define TAG "GOLAIN MQTT"
 
+
+static uint8_t dataRcvFlag = 0;
+
+char * split_topic[3]; 
+
+extern Shadow shadow;
+
+esp_mqtt_client_handle_t client; 
+static char dirtyTopicArray[96]; //We have a lot of memory screw it
+static char dirtyDataArray[128]; //We have a lot of memory screw it
+
+static uint8_t rcvTopicLength = 0;
+static uint8_t rcvDataLength = 0;
+
+
+
+extern const char mqtt_device_cert_pem_start[] asm("_binary_device_cert_pem_start");
+extern const char mqtt_device_pvt_key_pem_start[] asm("_binary_device_private_key_pem_start");
+extern const char mqtt_broker_cert_pem_start[] asm("_binary_mqtt_broker_cert_pem_start");
+extern const unsigned char mqtt_root_ca_cert_pem_start[] asm("_binary_root_ca_cert_pem_start");
+
+extern const char mqtt_device_cert_pem_end[] asm("_binary_device_cert_pem_end");
+extern const char mqtt_device_pvt_key_pem_end[] asm("_binary_device_private_key_pem_end");
+extern const char mqtt_broker_cert_pem_end[] asm("_binary_mqtt_broker_cert_pem_end");
+extern const unsigned char mqtt_root_ca_cert_pem_end[] asm("_binary_root_ca_cert_pem_end");
 
 
 
 /// @brief Initialise and start MQTT service. 
 /// @note If wifi is not initialised, this will reset the ESP. Change DHCP Length from 68 to 255 to void heap problems
-void mqtt_app_start();
+void mqtt_app_start(uint8_t* client_id,uint8_t* client_cert,uint8_t* client_key);
 
 /// @brief Post data to /device-shadow/r topic
 /// @param data This should have the buffer to the encoded shadow buffer
 /// @param length Number of bytes written to the shadow buffer
 /// @note By default shadow will be posted automatically when requested via {DEVICE_SHADOW_TOPIC}/r topic
 /// @return 0 when no problems occur
-esp_err_t postShadow(uint8_t * data, int length);
+golain_err_t postShadow(uint8_t * data, int length);
 
 
 /// @brief A generic data posting function
@@ -59,13 +92,13 @@ int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic);
  * @param length Length of Device Data struct  
  * @returns the error code in the form of esp_err_t. 0 on success  
  */
-esp_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length);
+golain_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length);
 
 /// @brief Post data to user association topic on the golain platform
 /// @param UAData User association data
 /// @param len Length of the data to be sent
-/// @returns the error code in the form of esp_err_t. 0 on success
-esp_err_t postUserAssoc(void * UAData, size_t len);
+/// @returns the error code in the form of golain_err_t. 0 on success
+golain_err_t postUserAssoc(void * UAData, size_t len);
 
 /// @brief Check if a subscribed topic has data posted
 ///   

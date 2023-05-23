@@ -1,4 +1,5 @@
 idf_component_register(
     SRCS "main.c"
-    REQUIRES persistent_logs
+    INCLUDE_DIRS "."
+    REQUIRES persistent_logs nanopb
 )
