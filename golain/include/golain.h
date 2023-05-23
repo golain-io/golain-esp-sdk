@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "golain_mqtt.h"
+#include "golain_blemesh_comp.h"
 #include <malloc.h>
 #define GOLAIN_OTA_ENABLE 1
 #define GOLAIN_PERSISTENT_LOGS_ENABLE 1
