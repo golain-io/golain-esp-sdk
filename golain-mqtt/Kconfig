@@ -14,33 +14,17 @@ menu "Golain Configuration"
     
     
     
-    config MQTT_PORT
-        int "URI port for the mqtt broker"
-        default 8083
-
-    config BROKER_URI
-        string "Broker URL"
-        default "mqtts://dev.golain.io"
-        help
-            URL of an mqtt broker which this example connects to.
-
     config TOPIC_ROOT   
         string "Path to the root topic for your project"
         default "<Insert root topic>"
-        
-    config DEVICE_NAME
-        string "Name of your device"
-        default "<Insert device name>"
-    
+ 
     config ESP_WIFI_SSID
                 string "WiFi SSID"
-                default "myssid"
                 help
                     SSID (network name) for the example to connect to.
         
     config ESP_WIFI_PASSWORD
                 string "WiFi Password"
-                default "mypassword"
                 help
                     WiFi password (WPA or WPA2) for the example to use.
         
