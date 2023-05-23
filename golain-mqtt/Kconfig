@@ -1,4 +1,19 @@
-menu "Golain MQTT Configuration"
+menu "Golain Configuration"
+    config MQTT_ENABLE
+        bool "Use mqtt service"
+        default 1
+    
+    config BLE_ENABLE
+        bool "Use BLE Mesh Component"
+        default 0
+    
+    config OTA_ENABLE
+        bool "Enable OTA Updates"
+        default 0
+    
+    
+    
+    
     config MQTT_PORT
         int "URI port for the mqtt broker"
         default 8083

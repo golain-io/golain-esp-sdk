@@ -448,6 +448,7 @@ esp_err_t send_message(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 
     if (bt_mesh_model_send(model, ctx, msg, NULL, NULL)) {
         console_printf("#vendor-model-recv: send rsp failed\n");
+        return ESP_FAIL;
     }
 
     os_mbuf_free_chain(msg);
