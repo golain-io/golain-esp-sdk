@@ -26,8 +26,8 @@
 #include "freertos/task.h"
 
 //#include "persistent_logs.h"
-#include "golain_mqtt.h"
-#include "mk_wifi_helper.h"
+#include "golain.h"
+
 #include "cell_data.pb.h"
 
 #define TAG "MQTTS_EXAMPLE"
@@ -63,14 +63,19 @@ ShadowCfg myConfig= {
 
 };
 
+golain_config Gconfig = {
+    .client_id = "Test_ESP",
+    .shadowcfg = myConfig,
+}
+
 void Demo_Task(void){
         while(1){
             Cell.voltage = ((rand()%(2200-200+1)) +200)*0.1;
             Cell.demo_test_int = (int32_t)rand();
-            pb_ostream_t  ostream = pb_ostream_from_buffer(protobuff, sizeof(protobuff));
-            pb_encode( &ostream, cell_fields, &Cell);
             
-            postDeviceDataPoint("Demo-DP", cell_fields, &Cell, cell_size);            
+            golain_post_device_data_point("Test_1", cell_fields, &Cell, cell_size);
+
+            //postDeviceDataPoint("Demo-DP", cell_fields, &Cell, cell_size);            
             
             vTaskDelay(1000/ portTICK_RATE_MS);
         }
@@ -92,10 +97,7 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     
 
-    wifi_init_sta(); 
-    //ESP_LOGI(TAG, "wifi_init_sta finished.");
-
-    mqtt_app_start();
+    golain_init(&Gconfig);
 
     xTaskCreate(Demo_Task, "Demo_Task", 4096, NULL, 1, &myTaskHandle);
     
