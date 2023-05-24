@@ -14,9 +14,13 @@ typedef struct golain_config
     // MQTT configs
     uint8_t *root_topic;
     uint8_t *client_id;
-    uint8_t *root_ca_cert;
-    uint8_t *device_cert;
-    uint8_t *device_pvt_key;
+ #ifdef CONFIG_HANDLE_WIFI
+    uint8_t *wifissid;
+    uint8_t *wifipass;
+#endif
+    // uint8_t *root_ca_cert; //The certs don't need to be here. They are already easy to change
+    // uint8_t *device_cert;
+    // uint8_t *device_pvt_key;
 
     ShadowCfg shadowcfg;
 
@@ -46,23 +50,23 @@ void golain_set_client_id(golain_config *client, uint8_t *golain_client_id)
     client->client_id = client_id;
 }
 
-void golain_set_root_ca_cert(golain_config *client, uint8_t *golain_root_ca_cert)
-{
+// void golain_set_root_ca_cert(golain_config *client, uint8_t *golain_root_ca_cert)
+// {
 
-    client->root_ca_cert = golain_root_ca_cert;
-}
+//     client->root_ca_cert = golain_root_ca_cert;
+// }
 
-void golain_set_device_cert(golain_config *client, uint8_t *golain_device_cert)
-{
+// void golain_set_device_cert(golain_config *client, uint8_t *golain_device_cert)
+// {
 
-    client->device_cert = golain_device_cert;
-}
+//     client->device_cert = golain_device_cert;
+// }
 
-void golain_set_device_cert(golain_config *client, uint8_t *golain_device_pvt_key)
-{
+// void golain_set_device_cert(golain_config *client, uint8_t *golain_device_pvt_key)
+// {
 
-    client->device_pvt_key = golain_device_pvt_key;
-}
+//     client->device_pvt_key = golain_device_pvt_key;
+// }
 
 int golain_init(golain_config *client)
 {
@@ -74,6 +78,10 @@ int golain_init(golain_config *client)
 
     //Shadow needs to be init for mqtt
     InitDeviceShadow(client->shadowcfg);
+
+#ifdef CONFIG_HANDLE_WIFI
+    wifi_init_sta(client->wifissid, client->wifipass);
+#endif
 
 #ifdef GOLAIN_OTA_ENABLE
     ESP_ERROR_CHECK(nvs_flash_init());

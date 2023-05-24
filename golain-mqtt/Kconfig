@@ -11,9 +11,11 @@ menu "Golain Configuration"
         bool "Enable OTA Updates"
         default 0
     
-    
-    
-    
+    config HANDLE_WIFI
+        bool "Let golain_init() handle wifi"
+        default 1
+        
+        
     config TOPIC_ROOT   
         string "Path to the root topic for your project"
         default "<Insert root topic>"
