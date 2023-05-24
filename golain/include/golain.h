@@ -113,3 +113,14 @@ golain_err_t golain_send_ble_msg(struct bt_mesh_model *model,
                             return send_message(model, ctx, buf, buffer, len);
                            }
 
+golain_err_t golain_get_shadow(uint8_t * buff, size_t buff_len, size_t* encoded_size){
+    return GetShadow(buff, buff_len, encoded_size);
+}
+
+golain_err_t golain_update_with_struct(void){
+    return UpdatewithStruct();
+}
+
+golain_err_t golain_update_with_buff(uint8_t * buff, size_t len){
+    return UpdatewithBuff(buff, len);
+}
