@@ -1,7 +1,4 @@
 menu "Golain Configuration"
-    config MQTT_ENABLE
-        bool "Use mqtt service"
-        default 1
     
     config BLE_ENABLE
         bool "Use BLE Mesh Component"
@@ -13,7 +10,7 @@ menu "Golain Configuration"
     
     config HANDLE_WIFI
         bool "Let golain_init() handle wifi"
-        default 1
+        default 0
         
         
     config TOPIC_ROOT   

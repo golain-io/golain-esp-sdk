@@ -4,6 +4,7 @@
 #include "golain_mqtt.h"
 #include "golain_blemesh_comp.h"
 #include "shadow_helper.h"
+#include "golain_err.h"
 #include <malloc.h>
 #define GOLAIN_OTA_ENABLE 1
 #define GOLAIN_PERSISTENT_LOGS_ENABLE 1

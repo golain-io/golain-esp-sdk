@@ -64,6 +64,7 @@ ShadowCfg myConfig= {
 };
 
 golain_config Gconfig = {
+    .root_topic = "/6969_6969"
     .client_id = "Test_ESP",
     .shadowcfg = myConfig,
 }
