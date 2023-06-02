@@ -262,18 +262,22 @@ void wifi_callback(struct bt_mesh_model *model,
                            struct os_mbuf *buf){ //Needs to be changed to set nvs and then restart
     ESP_LOGI(tag, "WIFI CB");
     nvs_handle_t wifi_handle;
+    esp_err_t err;
+    uint8_t recvbuff[97];
+    memcpy(recvbuff, buf->om_data, 97);
+    send_message(model, ctx, buf, recvbuff, buf->om_len);
 
     
-        esp_err_t err = nvs_open("WIFI-CRED", NVS_READWRITE, &wifi_handle);
+    err = nvs_open("WIFI-CRED", NVS_READWRITE, &wifi_handle);
      if (err == ESP_ERR_NVS_NOT_INITIALIZED){
         ESP_LOGE(TAG, "NVS not initialised. HELP");
         return NVS_NOT_INIT;
     } 
 
-    err = nvs_set_blob(wifi_handle, "WIFI-CRED", buff, len);
+    err = nvs_set_blob(wifi_handle, "WIFI-CRED", recvbuff, 97);
 
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "NVS could not be updated reason: %d", (int)err);
+        ESP_LOGE(TAG, "NVS could not be updated. Reason: %d", (int)err);
         
         //nvs_close(wifi_handle);
         shadow_err = NVS_UPDATE_FAIL;
@@ -290,9 +294,7 @@ void wifi_callback(struct bt_mesh_model *model,
     esp_restart(); // Resets the ESP everything after will be deleted after testing
 
 
-    uint8_t recvbuff[100];
-    memcpy(recvbuff, buf->om_data, buf->om_len);
-    send_message(model, ctx, buf, recvbuff, buf->om_len);
+
     const char split_sym = ',';
     uint8_t * newssid = (uint8_t*)strtok((char*)recvbuff, &split_sym);
     uint8_t * newpass = (uint8_t*)strtok(NULL, &split_sym);

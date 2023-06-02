@@ -70,7 +70,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read from NVS and try to connect with\
                                                                 SSID and Pass if found
 {   
-    wifi_buff[96];
+    uint8_t wifi_buff[96];
     nvs_handle_t wifi_handle;
     wifi_config_t wifi_config = {
     .sta = {
