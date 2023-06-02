@@ -67,7 +67,8 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass)
+void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read from NVS and try to connect with\
+                                                                SSID and Pass if found
 {
     s_wifi_event_group = xEventGroupCreate();
 

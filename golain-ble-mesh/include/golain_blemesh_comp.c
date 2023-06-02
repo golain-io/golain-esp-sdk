@@ -259,7 +259,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 
 void wifi_callback(struct bt_mesh_model *model,
                            struct bt_mesh_msg_ctx *ctx,
-                           struct os_mbuf *buf){
+                           struct os_mbuf *buf){ //Needs to be changed to set nvs and then restart
     ESP_LOGI(tag, "WIFI CB");
     uint8_t recvbuff[100];
     memcpy(recvbuff, buf->om_data, buf->om_len);

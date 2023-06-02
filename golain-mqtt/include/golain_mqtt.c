@@ -179,7 +179,7 @@ golain_err_t postShadow(uint8_t * data, int length){
 
 
 
-void postData(char * data, size_t length, char * topic){ //Post already encoded datat point
+void postData(char * data, size_t length, char * topic){ //Post already encoded data point
     char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(topic)];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, topic);
     esp_mqtt_client_publish(client, topic_to_publish, data, length, 0, 0);
@@ -191,7 +191,7 @@ void postData(char * data, size_t length, char * topic){ //Post already encoded 
 
 golain_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descriptor, void * data, uint32_t length){
     esp_err_t err;    
-    char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(struct_name)+5];
+    char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+strlen(struct_name)];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, struct_name);
 
     ESP_LOGI(TAG, "Topic: %s", topic_to_publish);
