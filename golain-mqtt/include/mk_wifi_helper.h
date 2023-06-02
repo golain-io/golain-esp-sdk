@@ -69,7 +69,62 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 
 void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read from NVS and try to connect with\
                                                                 SSID and Pass if found
-{
+{   
+    wifi_buff[96];
+    nvs_handle_t wifi_handle;
+    wifi_config_t wifi_config = {
+    .sta = {
+            // .ssid = wifi_ssid,
+            // .password = wifi_pass,
+            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
+             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
+             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
+	     * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
+             */
+            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
+        },
+    };
+
+    esp_err_t err = nvs_open("WIFI-CRED", NVS_READONLY, &wifi_handle);
+     if (err == ESP_ERR_NVS_NOT_INITIALIZED){
+        ESP_LOGE(TAG, "NVS not initialised. HELP");
+        return NVS_NOT_INIT;
+    } 
+
+    size = sizeof(shadow_buffer);
+    
+    err = nvs_get_blob(wifi_handle, "WIFI-CRED", wifi_buff, &size);
+    
+    nvs_close(my_handle);
+    switch(err){
+        
+        case(ESP_ERR_NVS_NOT_INITIALIZED):
+        ESP_LOGW(TAG, "NVS Not found");
+        return NVS_NOT_INIT;
+        
+        
+        case(ESP_OK): //Decode buffer into pb
+        wifi_config.sta.ssid = wifi_buff; //Need to add string splitting logic Won't work right now
+
+        return GOLAIN_OK;
+
+        case(ESP_FAIL):
+        ESP_LOGE(TAG, "Panicked");
+        wifi_config.sta.ssid = wifi_ssid;
+        wifi_config.sta.password = wifi_pass;
+
+
+        return GENERIC_ERR;
+
+        default:
+        return GENERIC_ERR;
+        break;
+    }    
+
+    nvs_close(my_handle);
+
+
     s_wifi_event_group = xEventGroupCreate();
 
     esp_netif_create_default_wifi_sta();
@@ -90,19 +145,7 @@ void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read fr
                                                         NULL,
                                                         &instance_got_ip));
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = wifi_ssid,
-            .password = wifi_pass,
-            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-	     * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
-            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
-            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-        },
-    };
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
     ESP_ERROR_CHECK(esp_wifi_start() );
