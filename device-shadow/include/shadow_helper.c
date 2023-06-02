@@ -79,7 +79,7 @@ enum golain_err_t InitDeviceShadow(ShadowCfg temp_cfg){
     //clean_nvs = temp_cfg.clean_on_error;
     
     
-    //NVS 
+    //NVS  sfghdh
     
     esp_err_t err = nvs_open("Shadow Buffer", NVS_READWRITE, &my_handle);
      if (err == ESP_ERR_NVS_NOT_INITIALIZED){
