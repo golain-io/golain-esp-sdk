@@ -19,9 +19,9 @@ typedef struct golain_config
     uint8_t *wifissid;
     uint8_t *wifipass;
 #endif
-    // uint8_t *root_ca_cert; //The certs don't need to be here. They are already easy to change
-    // uint8_t *device_cert;
-    // uint8_t *device_pvt_key;
+    uint8_t *root_ca_cert; 
+    uint8_t *device_cert;
+    uint8_t *device_pvt_key;
 
     ShadowCfg shadowcfg;
 
