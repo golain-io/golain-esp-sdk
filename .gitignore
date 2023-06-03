@@ -1,2 +1,19 @@
+# local
 **/build/**
 **/.vscode/**
+**/.idea/**
+
+# certificates
+**/*.crt
+**/*.pem
+**/*.key
+**/*.cer
+
+# images
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+
+# binaries
+**/*.bin

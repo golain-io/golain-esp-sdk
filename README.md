@@ -19,7 +19,7 @@ Assuming that your project is already a git repository, this can be done by:
 1. run `git submodule init` inside your project
 2. run `git submodule add https://github.com/golain-io/golain-esp-sdk components/`
 3. navigate to the cloned repo by executing `cd components/golain-esp-sdk`
-4. run `git submodule update --init --recursive` to pull all external components as well
+4. run `git submodule update --init --recursive` to pull all dependent components as well
 5. Update your CMakeLists.txt to include the components directory
 
 ### Details

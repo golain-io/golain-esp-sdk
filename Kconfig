@@ -1,0 +1,35 @@
+menu Golain
+
+    config GOLAIN_ROOT_TOPIC
+        string "Root Topic"
+        default "/xxxx_xxxx/"
+        help
+            The root topic for all MQTT messages. Get this from connection_settings.json after creating a device in Golain Platform
+
+    config GOLAIN_DEVICE_NAME
+        string "Device Name"
+        default "xxxx"
+        help
+            The name of the device. Same as the name in Golain Platform - Get this from connection_settings.json after creating a device in Golain Platform
+
+    config GOLAIN_BLE
+        bool "Enable BLE Services for Golain"
+        help
+            Allows interaction with device via BLE. Uses the NimBLE stack with custom services and characteristics. Works best with the Golain Flutter SDKs.
+    
+    config GOLAIN_MQTT_OTA
+        bool "Enable OTA Updates via MQTT"
+        help
+            Allows for Generic OTA updates via MQTT. Firmware updates are handled implicitly, others must be handled by the user.
+    
+    config GOLAIN_CLOUD_LOGGING
+        bool "Enable Persistent Cloud Logging"
+        help
+            Adds support for persistent logging and push-to-cloud logs. Use P_ESP_LOG* macros to log to the cloud & console.
+
+    config GOLAIN_REPORT_DEVICE_HEALTH
+        bool "Report Device Health"
+        help
+            Reports device health to the cloud. This includes the device's free heap, uptime, and other useful information.
+
+endmenu
