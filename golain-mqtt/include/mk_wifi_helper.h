@@ -74,13 +74,6 @@ void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read fr
     nvs_handle_t wifi_handle;
     wifi_config_t wifi_config = {
     .sta = {
-            // .ssid = wifi_ssid,
-            // .password = wifi_pass,
-            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-	     * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
             .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
         },
@@ -99,16 +92,22 @@ void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read fr
     nvs_close(my_handle);
     switch(err){
         
-        case(ESP_ERR_NVS_NOT_INITIALIZED):
-        ESP_LOGW(TAG, "NVS Not found");
-        return NVS_NOT_INIT;
+
         
         
         case(ESP_OK): //Decode buffer into pb
-        wifi_config.sta.ssid = wifi_buff; //Need to add string splitting logic Won't work right now
-
+        const char split_sym = ',';
+        uint8_t * newssid = (uint8_t*)strtok((char*)recvbuff, &split_sym);
+        uint8_t * newpass = (uint8_t*)strtok(NULL, &split_sym);
+        
+        wifi_config.sta.ssid = newssid; //Need to add string splitting logic Won't work right now
+        wifi_config.sta.password = newpass;
         return GOLAIN_OK;
 
+        case(ESP_ERR_NVS_NOT_INITIALIZED):
+        ESP_LOGW(TAG, "NVS Not found");
+        // return NVS_NOT_INIT;
+        
         case(ESP_FAIL):
         ESP_LOGE(TAG, "Panicked");
         wifi_config.sta.ssid = wifi_ssid;

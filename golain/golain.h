@@ -15,7 +15,7 @@ typedef struct golain_config
     // MQTT configs
     uint8_t *root_topic;
     uint8_t *client_id;
- #ifdef CONFIG_HANDLE_WIFI
+ #if CONFIG_HANDLE_WIFI == y
     uint8_t *wifissid;
     uint8_t *wifipass;
 #endif
@@ -25,7 +25,7 @@ typedef struct golain_config
 
     ShadowCfg shadowcfg;
 
-#ifdef GOLAIN_BLE_ENABLE
+#if GOLAIN_BLE_ENABLE == y
     //BLE Config
     MeshConfig bleconfig;
 #endif

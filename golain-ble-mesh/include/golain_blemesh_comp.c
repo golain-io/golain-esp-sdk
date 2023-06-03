@@ -263,8 +263,8 @@ void wifi_callback(struct bt_mesh_model *model,
     ESP_LOGI(tag, "WIFI CB");
     nvs_handle_t wifi_handle;
     esp_err_t err;
-    uint8_t recvbuff[97];
-    memcpy(recvbuff, buf->om_data, 97);
+    uint8_t recvbuff[100];
+    memcpy(recvbuff, buf->om_data, 100);
     send_message(model, ctx, buf, recvbuff, buf->om_len);
 
     
@@ -274,7 +274,7 @@ void wifi_callback(struct bt_mesh_model *model,
         return NVS_NOT_INIT;
     } 
 
-    err = nvs_set_blob(wifi_handle, "WIFI-CRED", recvbuff, 97);
+    err = nvs_set_blob(wifi_handle, "WIFI-CRED", recvbuff, 100);
 
     if(err != ESP_OK){
         ESP_LOGE(TAG, "NVS could not be updated. Reason: %d", (int)err);
@@ -295,9 +295,7 @@ void wifi_callback(struct bt_mesh_model *model,
 
 
 
-    const char split_sym = ',';
-    uint8_t * newssid = (uint8_t*)strtok((char*)recvbuff, &split_sym);
-    uint8_t * newpass = (uint8_t*)strtok(NULL, &split_sym);
+
 
 
 
