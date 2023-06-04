@@ -529,8 +529,9 @@ static int _golain_ble_shadow_read_cb(uint16_t con_handle, uint16_t attr_handle,
 }
 
 static int _golain_ble_shadow_write_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
-    _golain_shadow_update_from_buffer(_golain, ctxt->om->om_data,  ctxt->om->om_len); //Updating the shadow from the rceived buffer
-    printf("Data from the SHADOW client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
+    _golain_shadow_update_from_buffer(_golain, ctxt->om->om_data,  ctxt->om->om_len); // Updating the shadow from the rceived buffer
+    golain_mqtt_post_shadow(_golain);
+    ESP_LOGI(TAG, "Data from the SHADOW client: %*x\n", shadow_buffer);
     return 0;
 }
 

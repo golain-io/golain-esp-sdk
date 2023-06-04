@@ -191,7 +191,7 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
             ESP_LOGE(TAG, "Decoding failed");
             shadow_err = PB_UPDATE_FAIL;
             return shadow_err;
-        }
+        }   
         else{
             _golain_hal_shadow_persistent_write(buff, len);
             if (_golain->config->on_shadow_update_from_mqtt != NULL){
@@ -201,7 +201,7 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
     }
     else{
         ESP_LOGI(TAG, "NULL Buffer");
-        shadow_err = PB_UPDATE_FAIL;
+        shadow_err = PB_UPDATE_FAIL;    
     }   
     return shadow_err;
 }
