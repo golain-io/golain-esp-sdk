@@ -19,7 +19,7 @@
 void * _shadow_pointer;
 pb_msgdesc_t* _shadow_fields;
 size_t _shadow_size;
-
+//Change to save
 
 /*-----------------------------------------Call Back functions------------------------------------------*/
 void (*_golain_mqtt_shadow_cb)(void);
@@ -38,6 +38,8 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
     golain->config = config;
 
     golain_hal_init(golain);
+
+    golain_shadow_init(golain);
 
     #ifdef CONFIG_GOLAIN_BLE
     golain->ble = NULL;
@@ -135,10 +137,12 @@ golain_err_t golain_mqtt_post_data_point(char* topic, const void* descriptor, vo
 
 
 golain_err_t golain_mqtt_post_shadow(golain_t* _golain){
-    int post_err = _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)shadow_buffer, _golain->config->shadow_size, 1, 0);
-    if(post_err > 0){
-        return GOLAIN_MQTT_PUBLISH_FAIL;
-    }
+    size_t size_encoded;
+    _golain_shadow_get_trimmed_shadow_buffer(_golain, &size_encoded);
+
+    int ret_val = _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)shadow_buffer, size_encoded, 1, 0);
+    ESP_LOGD(TAG, "Returned msg ID: %d", ret_val);
+
     return GOLAIN_OK;
 }
 
