@@ -67,9 +67,8 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read from NVS and try to connect with\
-                                                                SSID and Pass if found
-{   
+void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass)
+{
     uint8_t wifi_buff[96];
     nvs_handle_t wifi_handle;
     wifi_config_t wifi_config = {
@@ -89,39 +88,22 @@ void wifi_init_sta(uint8_t * wifi_ssid, uint8_t * wifi_pass) // Needs to read fr
     
     err = nvs_get_blob(wifi_handle, "WIFI-CRED", wifi_buff, &size);
     
-    nvs_close(my_handle);
-    switch(err){
-        
-
-        
-        
-        case(ESP_OK): //Decode buffer into pb
+    nvs_close(shadow_nvs_handle);
+        if(err == ESP_OK){ 
         const char split_sym = ',';
         uint8_t * newssid = (uint8_t*)strtok((char*)recvbuff, &split_sym);
         uint8_t * newpass = (uint8_t*)strtok(NULL, &split_sym);
         
         wifi_config.sta.ssid = newssid; //Need to add string splitting logic Won't work right now
         wifi_config.sta.password = newpass;
-        return GOLAIN_OK;
+        }
+        else{
+            ESP_LOGW(TAG, "Wifi credentials not found in NVS");
+            wifi_config.sta.ssid = wifi_ssid;
+            wifi_config.sta.password = wifi_pass;
+        }
 
-        case(ESP_ERR_NVS_NOT_INITIALIZED):
-        ESP_LOGW(TAG, "NVS Not found");
-        // return NVS_NOT_INIT;
-        
-        case(ESP_FAIL):
-        ESP_LOGE(TAG, "Panicked");
-        wifi_config.sta.ssid = wifi_ssid;
-        wifi_config.sta.password = wifi_pass;
-
-
-        return GENERIC_ERR;
-
-        default:
-        return GENERIC_ERR;
-        break;
-    }    
-
-    nvs_close(my_handle);
+    nvs_close(shadow_nvs_handle);
 
 
     s_wifi_event_group = xEventGroupCreate();

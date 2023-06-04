@@ -1,3 +1,9 @@
 [submodule "nanopb"]
 	path = nanopb
 	url = https://github.com/nanopb/nanopb.git
+[submodule "examples/shadow_mqtt/nanopb"]
+	path = examples/shadow_mqtt/nanopb
+	url = https://github.com/IshanDaga/nanopb
+[submodule "examples/shadow_mqtt/components/nanopb"]
+	path = examples/shadow_mqtt/components/nanopb
+	url = https://github.com/IshanDaga/nanopb

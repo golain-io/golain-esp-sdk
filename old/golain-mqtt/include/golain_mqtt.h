@@ -19,14 +19,16 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include "esp_tls.h"
+#include "golain_constants.h"
+#include "golain_err.h"
 //#include "esp_ota_ops.h"
 #include <sys/param.h>
-#define DEVICE_SHADOW_TOPIC  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow" 
-#define DEVICE_SHADOW_TOPIC_R  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/r"
-#define DEVICE_SHADOW_TOPIC_U  CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-shadow/u"
-#define DEVICE_OTA_TOPIC     CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/ota"
-#define DEVICE_DATA_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/device-data"
-#define USER_ASSOC_TOPIC    CONFIG_TOPIC_ROOT CONFIG_DEVICE_NAME "/user"
+
+#define DEVICE_SHADOW_TOPIC_R   GOLAIN_SHADOW_READ_TOPIC
+#define DEVICE_SHADOW_TOPIC_U   GOLAIN_SHADOW_UPDATE_TOPIC
+#define DEVICE_OTA_TOPIC        GOLAIN_OTA_TOPIC
+#define DEVICE_DATA_TOPIC       GOLAIN_DATA_TOPIC
+#define USER_ASSOC_TOPIC        GOLAIN_USER_ASSOC_TOPIC
 #include "golain_err.h"
 #define TAG "GOLAIN MQTT"
 
@@ -37,7 +39,7 @@ char * split_topic[3];
 
 extern Shadow shadow;
 
-esp_mqtt_client_handle_t client; 
+esp_mqtt_client_handle_t _golain_mqtt_client; 
 static char dirtyTopicArray[96]; //We have a lot of memory screw it
 static char dirtyDataArray[128]; //We have a lot of memory screw it
 

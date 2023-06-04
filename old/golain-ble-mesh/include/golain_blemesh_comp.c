@@ -288,8 +288,8 @@ void wifi_callback(struct bt_mesh_model *model,
         shadow_err = GOLAIN_OK;
     }
 
-    nvs_commit(my_handle);
-    nvs_close(my_handle);
+    nvs_commit(shadow_nvs_handle);
+    nvs_close(shadow_nvs_handle);
 
     esp_restart(); // Resets the ESP everything after will be deleted after testing
 

@@ -18,47 +18,47 @@
 esp_err_t deviceHealthStore(uint8_t *deviceHealthproto)
 {
 
-    nvs_handle_t my_handle;
+    nvs_handle_t shadow_nvs_handle;
 
     // Open
-    esp_err_t err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &shadow_nvs_handle);
     if (err != ESP_OK)
         return err;
 
-    err = nvs_set_blob(my_handle, deviceHealthKey, deviceHealthproto, protobufSize);
+    err = nvs_set_blob(shadow_nvs_handle, deviceHealthKey, deviceHealthproto, protobufSize);
     if (err != ESP_OK)
         return err;
 
-    nvs_close(my_handle);
+    nvs_close(shadow_nvs_handle);
     return err;
 }
 
 int restart_counter() {
     int8_t num = 0;
-    nvs_handle_t my_handle;
+    nvs_handle_t shadow_nvs_handle;
     esp_err_t err;
 
     // Open
-    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &shadow_nvs_handle);
     if (err != ESP_OK) {
       ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
       return num;
     }
 
-    err = nvs_get_i8(my_handle, reset_counter_key, &num);
+    err = nvs_get_i8(shadow_nvs_handle, reset_counter_key, &num);
     if (err != ESP_OK) {
       ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
       return num;
     }
 
     num++;
-    err = nvs_set_i8(my_handle, reset_counter_key, num);
+    err = nvs_set_i8(shadow_nvs_handle, reset_counter_key, num);
     if (err != ESP_OK) {
       ESP_LOGE(LOGGING_TAG, "Error reading NVS (%s)", esp_err_to_name(err));
       return num;
     }
    
-    nvs_close(my_handle);
+    nvs_close(shadow_nvs_handle);
     
     return num;
 }

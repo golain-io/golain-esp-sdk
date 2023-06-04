@@ -29,7 +29,7 @@ void(* custom_cb)(void);
     //bool clean_nvs;
 
 //NVS
-nvs_handle_t my_handle;
+nvs_handle_t shadow_nvs_handle;
 
 //-----------------------------------------------------------------------------------------Functions start
 
@@ -74,14 +74,9 @@ return shadow_err;
 
 //---------------------------------------------------------------------------------------------------------------------------------
 enum golain_err_t InitDeviceShadow(ShadowCfg temp_cfg){
-    //Configuration 
+ 
     custom_cb = temp_cfg.shadow_update_cb;
-    //clean_nvs = temp_cfg.clean_on_error;
-    
-    
-    //NVS  sfghdh
-    
-    esp_err_t err = nvs_open("Shadow Buffer", NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(NVS_SHADOW_KEY, NVS_READWRITE, &shadow_nvs_handle);
      if (err == ESP_ERR_NVS_NOT_INITIALIZED){
         ESP_LOGE(TAG, "NVS not initialised. HELP");
         return NVS_NOT_INIT;
@@ -89,9 +84,9 @@ enum golain_err_t InitDeviceShadow(ShadowCfg temp_cfg){
 
     size = sizeof(shadow_buffer);
     
-    err = nvs_get_blob(my_handle, "Shadow Buffer", shadow_buffer, &size);
+    err = nvs_get_blob(shadow_nvs_handle, NVS_SHADOW_KEY, shadow_buffer, &size);
     
-    nvs_close(my_handle);
+    nvs_close(shadow_nvs_handle);
     switch(err){
         
         case(ESP_ERR_NVS_NOT_INITIALIZED):
@@ -129,7 +124,7 @@ enum golain_err_t InitDeviceShadow(ShadowCfg temp_cfg){
         break;
     }    
 
-    nvs_close(my_handle);
+    nvs_close(shadow_nvs_handle);
 
     return GOLAIN_OK;
 }
@@ -138,18 +133,18 @@ enum golain_err_t InitDeviceShadow(ShadowCfg temp_cfg){
 //-------------------------------------------------------------------------------------------------------------------------------------
 enum golain_err_t updateNVS(uint8_t * buff, size_t len){
     enum golain_err_t shadow_err;
-    esp_err_t err = nvs_open("Shadow Buffer", NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(NVS_SHADOW_KEY, NVS_READWRITE, &shadow_nvs_handle);
      if (err == ESP_ERR_NVS_NOT_INITIALIZED){
         ESP_LOGE(TAG, "NVS not initialised. HELP");
         return NVS_NOT_INIT;
     } 
 
-    err = nvs_set_blob(my_handle, "Shadow Buffer", buff, len);
+    err = nvs_set_blob(shadow_nvs_handle, NVS_SHADOW_KEY, buff, len);
 
     if(err != ESP_OK){
         ESP_LOGE(TAG, "NVS could not be updated");
         
-        //nvs_close(my_handle);
+        //nvs_close(shadow_nvs_handle);
         shadow_err = NVS_UPDATE_FAIL;
     }
     else{
@@ -158,8 +153,8 @@ enum golain_err_t updateNVS(uint8_t * buff, size_t len){
         shadow_err = GOLAIN_OK;
     }
 
-    nvs_commit(my_handle);
-    nvs_close(my_handle);
+    nvs_commit(shadow_nvs_handle);
+    nvs_close(shadow_nvs_handle);
     return shadow_err;
 }
 

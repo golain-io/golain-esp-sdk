@@ -12,6 +12,49 @@ menu Golain
         help
             The name of the device. Same as the name in Golain Platform - Get this from connection_settings.json after creating a device in Golain Platform
 
+    config GOLAIN_WIFI
+        bool "Enable Wifi"
+        help
+            Enables simple managed Wifi. If disabled, user must manually connect to the internet via other means.
+
+    config WIFI_SSID
+        string "Wifi SSID"
+        default "enter ssid"
+        help
+            The wifi ssid of your prefered wifi network
+    
+    config WIFI_PASSWORD
+        string "Wifi password"
+        default "enter wifi password"
+        help
+            The wifi password of your prefered wifi network
+
+    choice ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+        prompt "WiFi Scan auth mode threshold"
+        default ESP_WIFI_AUTH_WPA2_PSK
+        help
+            The weakest authmode to accept in the scan mode.
+            This value defaults to ESP_WIFI_AUTH_WPA2_PSK incase password is present and ESP_WIFI_AUTH_OPEN is used.
+            Please select ESP_WIFI_AUTH_WEP/ESP_WIFI_AUTH_WPA_PSK incase AP is operating in WEP/WPA mode.
+        
+        config ESP_WIFI_AUTH_OPEN
+            bool "OPEN"
+        config ESP_WIFI_AUTH_WEP
+            bool "WEP"
+        config ESP_WIFI_AUTH_WPA_PSK
+            bool "WPA PSK"
+        config ESP_WIFI_AUTH_WPA2_PSK
+            bool "WPA2 PSK"
+        config ESP_WIFI_AUTH_WPA_WPA2_PSK
+            bool "WPA/WPA2 PSK"
+        config ESP_WIFI_AUTH_WPA3_PSK
+            bool "WPA3 PSK"
+        config ESP_WIFI_AUTH_WPA2_WPA3_PSK
+            bool "WPA2/WPA3 PSK"
+        config ESP_WIFI_AUTH_WAPI_PSK
+            bool "WAPI PSK"
+    endchoice
+
     config GOLAIN_BLE
         bool "Enable BLE Services for Golain"
         help
@@ -31,5 +74,11 @@ menu Golain
         bool "Report Device Health"
         help
             Reports device health to the cloud. This includes the device's free heap, uptime, and other useful information.
+
+    config GOLAIN_SHADOW_BUFFER_SIZE
+        int "Shadow Buffer Size"
+        default 128
+        help
+            The size of the shadow buffer. This is used to store the device's shadow document. Increase this if you have a large shadow document.
 
 endmenu

@@ -47,7 +47,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
-    client = event->client;
+    _golain_mqtt_client = event->client;
     int msg_id;
 
     switch ((esp_mqtt_event_id_t)event_id) {
@@ -56,7 +56,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         
 
         
-        msg_id = esp_mqtt_client_subscribe(client, DEVICE_SHADOW_TOPIC_R, 0);
+        msg_id = esp_mqtt_client_subscribe(_golain_mqtt_client, DEVICE_SHADOW_TOPIC_R, 0);
         ESP_LOGI(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
 
         break;
@@ -121,53 +121,41 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-void mqtt_app_start(uint8_t* client_id,uint8_t* client_cert,uint8_t* client_key){
+golain_err_t golain_hal_mqtt_init(golain_t* golain){
+
+    golain_err_t err = GOLAIN_OK;
     
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = "dev.golain.io",
         .port = 8083,
-        .client_cert_pem = (const char*)mqtt_device_cert_pem_start,
-        .client_key_pem = (const char*)mqtt_device_pvt_key_pem_start,
+        .client_cert_pem = (const char*)golain->device_cert,
+        .client_key_pem = (const char*)golain->device_pvt_key,
         .client_id = client_id,
-        
-
-
     };
 
-     esp_err_t res=esp_tls_init_global_ca_store();
+    esp_err_t res = esp_tls_init_global_ca_store();
+
     res = esp_tls_set_global_ca_store((unsigned char *)mqtt_root_ca_cert_pem_start, mqtt_root_ca_cert_pem_end-mqtt_root_ca_cert_pem_start); 
+
     if(res != 0){
-        ESP_LOGI(TAG,"Error code: 0x%08x\n", res);
+        ESP_LOGE(TAG,"Error code: 0x%08x\n", res);
+        return GOLAIN_ERR;
     }
 
-    ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
-    client = esp_mqtt_client_init(&mqtt_cfg);
+    ESP_LOGD(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+
+    _golain_mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
-    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
-    esp_mqtt_client_start(client);
-}
+    esp_mqtt_client_register_event(_golain_mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    esp_mqtt_client_start(_golain_mqtt_client);
 
-int8_t string_switch(char * input_array[], uint8_t array_len, char * myTopic){
-    printf("Comparing with %s \n", myTopic);
-    
-    uint8_t i =0;
-    for(i = 0; i<array_len; i++){
-        size_t temp_size = sizeof(input_array[i]);
-        
-        int temp = strncmp(myTopic, input_array[i], temp_size);
-        printf("%s \n", input_array[i]);
-        if(temp ==  0){
-            printf("Matches with this %s", input_array[i]);
-            return i;
-        }
-    }
-    return -1;
+    return err;
 }
 
 
 golain_err_t postShadow(uint8_t * data, int length){
     
-    int post_err = esp_mqtt_client_publish(client, DEVICE_SHADOW_TOPIC_U, (char*)data, length, 0, 1);
+    int post_err = esp_mqtt_client_publish(_golain_mqtt_client, DEVICE_SHADOW_TOPIC_U, (char*)data, length, 0, 1);
 
     if(post_err > 0){
     ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", DEVICE_SHADOW_TOPIC_U, post_err);
@@ -182,7 +170,7 @@ golain_err_t postShadow(uint8_t * data, int length){
 void postData(char * data, size_t length, char * topic){ //Post already encoded data point
     char topic_to_publish[sizeof(DEVICE_DATA_TOPIC)+sizeof(topic)];
     sprintf(topic_to_publish, "%s/%s", DEVICE_DATA_TOPIC, topic);
-    esp_mqtt_client_publish(client, topic_to_publish, data, length, 0, 0);
+    esp_mqtt_client_publish(_golain_mqtt_client, topic_to_publish, data, length, 0, 0);
     ESP_LOGI(TAG, "Published to topic: %s", topic);
 }
 
@@ -204,14 +192,14 @@ golain_err_t postDeviceDataPoint(char* struct_name, const pb_msgdesc_t* descript
         return (golain_err_t) err;
     }
     ESP_LOGI(TAG, "Encoded %d bytes", stream.bytes_written);
-    err = esp_mqtt_client_publish(client, topic_to_publish, (char*)buffer, stream.bytes_written, 0, 0);
+    err = esp_mqtt_client_publish(_golain_mqtt_client, topic_to_publish, (char*)buffer, stream.bytes_written, 0, 0);
     return (golain_err_t)err;
 }
 
 golain_err_t postUserAssoc(void * UAData, size_t len){
     esp_err_t err;
     ESP_LOGW(TAG, "Publishing : %.*s", len, (char*)UAData);
-    err = esp_mqtt_client_publish(client, USER_ASSOC_TOPIC, (char*)UAData, len, 0, 0);
+    err = esp_mqtt_client_publish(_golain_mqtt_client, USER_ASSOC_TOPIC, (char*)UAData, len, 0, 0);
     return (golain_err_t)err;
 }
 
