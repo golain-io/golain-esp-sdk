@@ -62,7 +62,7 @@ typedef struct _golain_config_t
     const void * device_cert;
     const void * device_pvt_key;
     const void * root_ca_cert_start;
-    const uint32_t * root_ca_cert_len;
+    const unsigned int root_ca_cert_len;
 
     #ifdef CONFIG_GOLAIN_BLE
     void (*on_shadow_update_from_ble)(void);
@@ -95,7 +95,10 @@ golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t 
 
 golain_err_t golain_mqtt_post_data_point(char* topic, const void* descriptor, void * data, uint32_t length);
 golain_err_t golain_mqtt_post_shadow(golain_t*);
-// void golain_mqtt_process_data(char* topic, size_t topic_len, char * data, size_t data_len);
+
+#ifdef CONFIG_GOLAIN_CONSUMER_ENABLED
+golain_err_t golain_mqtt_post_user_assoc(golain_t*, uint8_t * buff, uint8_t len);
+#endif
 
 /*-------------------------------------------------------WIFI-------------------------------------*/
 #ifdef CONFIG_GOLAIN_WIFI

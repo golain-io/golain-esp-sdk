@@ -529,14 +529,20 @@ static int _golain_ble_shadow_read_cb(uint16_t con_handle, uint16_t attr_handle,
 }
 
 static int _golain_ble_shadow_write_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    _golain_shadow_update_from_buffer(_golain, ctxt->om->om_data,  ctxt->om->om_len); //Updating the shadow from the rceived buffer
     printf("Data from the SHADOW client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
     return 0;
 }
 
+#ifdef CONFIG_GOLAIN_CONSUMER_ENABLED
+
 static int _golain_ble_associate_user_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    golain_mqtt_post_user_assoc(_golain, ctxt->om->om_data,  ctxt->om->om_len); //Posting user assoc on receive
     printf("Data from the USER client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
     return 0;
 }
+
+#endif
 
 static int _golain_ble_configure_wifi_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     printf("Data from the WIFI client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
@@ -556,11 +562,13 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
             .flags = BLE_GATT_CHR_F_WRITE,
             .access_cb = _golain_ble_shadow_write_cb,
         },
+        #ifdef CONFIG_GOLAIN_CONSUMER_ENABLED
         { // associate user
             .uuid = BLE_UUID16_DECLARE(0x5FDC),
             .flags = BLE_GATT_CHR_F_WRITE,
             .access_cb = _golain_ble_associate_user_cb,
         },
+        #endif
         { // configure wifi
             .uuid = BLE_UUID16_DECLARE(0x5FDD),
             .flags = BLE_GATT_CHR_F_WRITE,

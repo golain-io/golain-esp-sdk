@@ -118,4 +118,9 @@ menu "Golain"
         help
             The size of the shadow buffer. This is used to store the device's shadow document. Increase this if you have a large shadow document.
 
+    config GOLAIN_CONSUMER_ENABLED
+        bool "Enable Consumer"
+        help
+            Enables consumer applications & user association. See Docs for more info.
+
 endmenu

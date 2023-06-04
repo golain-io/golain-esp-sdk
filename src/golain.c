@@ -137,12 +137,22 @@ golain_err_t golain_mqtt_post_data_point(char* topic, const void* descriptor, vo
 golain_err_t golain_mqtt_post_shadow(golain_t* _golain){
     int post_err = _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)shadow_buffer, _golain->config->shadow_size, 1, 0);
     if(post_err > 0){
-    
-     return GOLAIN_MQTT_PUBLISH_FAIL;
+        return GOLAIN_MQTT_PUBLISH_FAIL;
     }
     return GOLAIN_OK;
 }
 
+#ifdef CONFIG_GOLAIN_CONSUMER_ENABLED
+
+golain_err_t golain_mqtt_post_user_assoc(golain_t* _golain, uint8_t * buff, uint8_t len){
+    int post_err = _golain_hal_mqtt_publish(GOLAIN_USER_ASSOC_TOPIC, (char*)buff, len, 0, 0);
+    if(post_err > 0){
+        return GOLAIN_MQTT_PUBLISH_FAIL;
+    }
+    return GOLAIN_OK;
+}
+
+#endif
 
 /*-------------------------------------------------Device Shadow funcitons--------------------------------------------------*/
 golain_err_t golain_shadow_init(golain_t* _golain){
