@@ -200,7 +200,7 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
         }
     }
     else{
-        ESP_LOGI(TAG, "NULL Buffer");
+        ESP_LOGE(TAG, "NULL Buffer");
         shadow_err = PB_UPDATE_FAIL;    
     }   
     return shadow_err;
