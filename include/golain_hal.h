@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 #include "golain.h"
+#include "esp_log.h"
+#include "esp_err.h"
 #include <stdio.h>
 
 golain_err_t golain_hal_init(golain_t * _golain);
@@ -45,8 +47,94 @@ golain_err_t _golain_hal_shadow_persistent_write(uint8_t * buff, size_t len);
 golain_err_t _golain_hal_shadow_persistent_read(uint8_t * buff, size_t size);
 
 
-/// @brief Encode the GLOBAL SHADOW into a buffer.data
-golain_err_t _golain_hal_shadow_get(uint8_t * buff, size_t buff_len, size_t* encoded_size);
+
+// ota funnctions
+#ifdef CONFIG_GOLAIN_MQTT_OTA
+  golain_err_t _golain_hal_ota_update(int event_total_data_len, char* event_data, int event_data_len);
+#endif
+
+// persistent log functions
+/**
+ * @brief - Logs and stores the Info statements given as a param
+ *
+ * @param tag A string which is used to trace the origin of log
+ *
+ * @param format Format in which data is to be logged and stored
+ *
+ * @param ... n Number of variable arguments that can be added as a part of log statement
+ *
+ */
+#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  #define GOLAIN_LOG_I(tag, format, ...) \
+    ESP_LOGI(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \
+    _golain_hal_p_log_write(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+#else
+  #define GOLAIN_LOG_I(tag, format, ...) \
+    ESP_LOGI(tag, "(%s)-> " format, __func__, ##__VA_ARGS__);
+#endif
+
+
+
+/**
+ * @brief - Logs and stores the Warning statements given as a param
+ *
+ * @param tag A string which is used to trace the origin of log
+ *
+ * @param format Format in which data is to be logged and stored
+ *
+ * @param ... n Number of variable arguments that can be added as a part of log statement
+ *
+ */  
+#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  #define GOLAIN_LOG_W(tag, format, ...) \
+    ESP_LOGW(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \
+    _golain_hal_p_log_write(ESP_LOG_WARN, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+#else
+  #define GOLAIN_LOG_W(tag, format, ...) \
+    ESP_LOGW(tag, "(%s)-> " format, __func__, ##__VA_ARGS__);
+#endif
+
+/**
+ * @brief 
+ *
+ * @param tag A string which is used to trace the origin of log
+ *
+ * @param format Format in which data is to be logged and stored
+ *
+ * @param ... n Number of variable arguments that can be added as a part of log statement
+ *
+ */
+#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  #define GOLAIN_LOG_E(tag, format, ...) \
+    ESP_LOGE(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \
+    _golain_hal_p_log_write(ESP_LOG_ERROR, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+#else
+  #define GOLAIN_LOG_E(tag, format, ...) \
+    ESP_LOGE(tag, "(%s)-> " format, __func__, ##__VA_ARGS__);
+#endif
+
+
+#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+
+golain_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err);
+
+golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len);
+
+golain_err_t _golain_hal_p_log_write(esp_log_level_t level, const char *func, const char *tag, const char *format, ...);
+
+golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer);
+
+golain_err_t _golain_hal_p_log_get_number_of_logs(int* num);
+
+#endif
+
+
+#ifdef CONFIG_GOLAIN_DEVICE_HEALTH
+
+golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto); 
+int8_t _golain_hal_reset_counter(void);
+
+#endif
 
 #ifdef __cplusplus
 }

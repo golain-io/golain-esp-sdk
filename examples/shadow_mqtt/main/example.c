@@ -33,12 +33,7 @@ void app_main() {
         .device_cert = mqtt_device_cert_pem_start,
         .device_pvt_key = mqtt_device_key_pem_start,
         .root_ca_cert_start = mqtt_ca_cert_pem_start,
-        .root_ca_cert_end = mqtt_ca_cert_pem_end,
-        .broker_cert = mqtt_ca_cert_pem_start,
-
-        .wifi_ssid = "FLBS",
-        .wifi_password = "hellowworld"
-
+        .root_ca_cert_len = mqtt_ca_cert_pem_end-mqtt_ca_cert_pem_start,
     };
 
     golain_t golain = {};

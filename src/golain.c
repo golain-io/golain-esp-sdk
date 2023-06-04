@@ -7,6 +7,10 @@
 #include "pb_encode.h"
 #include "pb_decode.h"
 
+#include "device_health.pb.h"
+#include "logs.pb.h"
+#include "golain_constants.h"
+
 #include <stdio.h>
 
 #define TAG "GOLAIN"
@@ -68,7 +72,7 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
 
 
 /*-----------------------------------------MQTT---------------------------------------------------------*/
-golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t topic_len, char * data, size_t data_len){
+golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t topic_len, char* data, size_t data_len, size_t total_len) {
     golain_err_t err = GOLAIN_OK;
     
     if (topic == NULL || data == NULL) {
@@ -82,6 +86,24 @@ golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t 
         memcpy(shadow_buffer, data, _cpy_len);
         _golain_shadow_update_from_buffer(_golain, shadow_buffer, _cpy_len);
     }
+
+    #ifdef CONFIG_GOLAIN_MQTT_OTA
+    
+    if (strncmp(GOLAIN_OTA_TOPIC, topic, GOLAIN_OTA_UPDATE_TOPIC_LEN) == 0) {
+        // check if full topic is firmware update
+        if (strncmp(GOLAIN_OTA_UPDATE_TOPIC, topic, GOLAIN_OTA_UPDATE_TOPIC_LEN) == 0){
+            // update firmware
+            err = _golain_hal_ota_update(total_len, data, data_len);
+        }
+        else {
+            // call user defined callback
+            if (_golain->config->on_ota_payload_received != NULL) {
+                _golain->config->on_ota_payload_received(data, data_len);
+            }
+        }
+    }
+
+    #endif
     
     return err;
 }
@@ -122,7 +144,7 @@ golain_err_t golain_mqtt_post_shadow(golain_t* _golain){
 }
 
 
-/*-------------------------------------------------Device Shadow funcitons--------------------------*/
+/*-------------------------------------------------Device Shadow funcitons--------------------------------------------------*/
 golain_err_t golain_shadow_init(golain_t* _golain){
 //    custom_cb = temp_cfg.shadow_update_cb;
     golain_err_t nvs_err;
@@ -189,3 +211,115 @@ golain_err_t golain_shadow_update(golain_t *golain){
     
     return GOLAIN_OK;
 }
+
+golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t * golain, size_t* encoded_size){
+    pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, golain->config->shadow_size);
+    if(!pb_encode(&ostream, golain->config->shadow_fields, golain->config->shadow_struct)){
+        ESP_LOGE(TAG,"%s",ostream.errmsg);
+        return PB_ENCODE_FAIL;
+    }
+    *encoded_size = ostream.bytes_written;
+    pb_get_encoded_size(encoded_size, golain->config->shadow_fields, golain->config->shadow_struct);
+    ESP_LOGI(TAG, "Encoded Length: %d", *encoded_size);
+    return GOLAIN_OK;
+
+}
+
+/*----------------------------------------------------------Device Health-------------------------------------------------------------------*/
+#ifdef CONFIG_GOLAIN_DEVICE_HEALTH
+
+golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length){
+    char data[] = "Zephyr is better\n";
+    bool status;
+    esp_chip_info(&info);
+
+    /* Allocate space on the stack to store the message data.
+     *
+     * Nanopb generates simple struct definitions for all the messages.
+     * - check out the contents of simple.pb.h!
+     * It is a good idea to always initialize your structures
+     * so that you do not have garbage data from RAM in there.
+     */
+    deviceHealth message = deviceHealth_init_zero;
+
+    /* Create a stream that will write to our buffer. */
+    pb_ostream_t stream = pb_ostream_from_buffer(buffer, buffer_size);
+    message.lastRebootReason = esp_reset_reason();
+    message.deviceRevision = info.revision;
+    message.numberOferrorsSinceLastReboot = errorCountSinceLastReset;
+    message.numberOfReboots = restart_counter();
+    message.userStringData.funcs.encode = golain_pb_encode_string;
+    message.userStringData.arg = data;
+
+    /* Now we are ready to encode the message! */
+    status = pb_encode(&stream, deviceHealth_fields, &message);
+    *message_length = stream.bytes_written;
+
+    if (!status)
+    {
+        printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        return PB_ENCODE_FAIL;
+    }
+
+    return GOLAIN_OK;
+
+}
+
+golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length){
+     bool status;
+    char rx[20];
+    /* Allocate space for the decoded message. */
+    deviceHealth message = deviceHealth_init_zero;
+
+    /* Create a stream that reads from the buffer. */
+    pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
+
+    message.userStringData.funcs.decode = golain_pb_decode_string;
+    message.userStringData.arg = rx;
+
+    /* Now we are ready to decode the message. */
+    status = pb_decode(&stream, deviceHealth_fields, &message);
+
+    /* Check for errors... */
+    if (status)
+    {
+
+        ESP_LOGI("debug", "was called from %s", __func__);
+        ESP_LOGI("decode", "number of errors since last reboot: %d", message.numberOferrorsSinceLastReboot);
+        ESP_LOGI("decode", "last reboot reason %d", message.lastRebootReason);
+        ESP_LOGI("decode", "number of reboots: %d", message.numberOfReboots);
+        ESP_LOGI("decode", "chip revision: %d", message.deviceRevision);
+        ESP_LOGI("decode", "user numeric data: %f", message.userNumericData);
+        ESP_LOGI("decode", "user string data: %s", rx);
+    }
+    else
+    {
+        printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
+    }
+
+    return status;
+}
+
+bool golain_pb_decode_string(pb_istream_t *stream, const pb_field_t *field, void **arg){
+    uint8_t buffer[1024] = {0};
+    
+    /* We could read block-by-block to avoid the large buffer... */
+    if (stream->bytes_left > sizeof(buffer) - 1)
+        return false;
+    
+    if (!pb_read(stream, buffer, stream->bytes_left))
+        return false;
+    
+    sprintf((char*)*arg, "%s", buffer);
+    return true;
+    
+}
+
+bool golain_pb_encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg){
+    char* string_to_encode = (char*)*arg;
+    if (!pb_encode_tag_for_field(stream, field))
+        return false;
+    
+    return pb_encode_string(stream, (uint8_t*)string_to_encode, strlen(string_to_encode));
+}
+#endif

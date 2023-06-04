@@ -5,9 +5,9 @@ This repo is a set of components created to make it conviniet to get started wit
 ### Works with
 | Hardware        | ESP-IDF version | Status | Tested |
 | ---             | ---      | ---       | ---                |
-| ESP32-WROOM32-D | `v4.4.x` | `dev`     | :heavy_check_mark: |
+| ESP32-WROOM32-D | `v4.4.x` | `beta`     | :heavy_check_mark: |
 | ESP32-WROOM32-D | `v5.x`   | `pending` | :x:                |
-| ESP32-C3        | `v4.4.x` | `dev`     | :heavy_check_mark: |
+| ESP32-C3        | `v4.4.x` | `beta`     | :heavy_check_mark: |
 | ESP32-C3        | `v5.x`   | `pending` | :x:                |
 
 ### Getting started

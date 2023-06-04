@@ -4,15 +4,17 @@
 #define GOLAIN_VERSION "0.1.0b"
 
 
-#define NVS_SHADOW_KEY "golain_shadow"
+#define GOLAIN_SHADOW_NVS_KEY                           "golain_shadow"
+#define GOLAIN_DEVICE_HEALTH_NVS_KEY                    "golain_dev_health"
+#define GOLAIN_DEVICE_HEALTH_RESET_COUNTER_NVS_KEY      "reset_counter"
 
 // check if the root topic and device name have been set
 #ifndef CONFIG_GOLAIN_ROOT_TOPIC
-    #warning "CONFIG_GOLAIN_ROOT_TOPIC not set. Using default value of 'golain'"
+    #error "CONFIG_GOLAIN_ROOT_TOPIC not set."
 #endif
 
 #ifndef CONFIG_GOLAIN_DEVICE_NAME
-    #warning "CONFIG_GOLAIN_DEVICE_NAME not set. Using default value of 'esp32'"
+    #error "CONFIG_GOLAIN_DEVICE_NAME not set."
 #endif
 
 #define GOLAIN_MQTT_BROKER_URI "mqtts://dev.golain.io"

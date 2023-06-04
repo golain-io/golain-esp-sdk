@@ -2,6 +2,11 @@
 #include "golain_constants.h"
 #include "golain.h"
 
+#include <sys/param.h>
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "nvs_flash.h"
 #include "nvs.h"
@@ -11,13 +16,18 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include "esp_tls.h"
-#include <sys/param.h>
+#include "logs.pb.h"
+#include "device_health.pb.h"
+#include "pb.h"
+#include "pb_encode.h"
+#include "pb_decode.h"
 
-//Wifi Stuff
+
+#ifdef CONFIG_GOLAIN_MQTT_OTA
+#include <esp_ota_ops.h>
 #include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <esp_partition.h>
+#endif
 
 #ifdef CONFIG_GOLAIN_WIFI
 #include "esp_wifi.h"
@@ -70,7 +80,7 @@
 
 /*-----------------------------------Variables----------------------------------------------*/
 
-nvs_handle_t shadow_nvs_handle;
+nvs_handle_t _golain_device_health_nvs_handle;
 esp_mqtt_client_handle_t _golain_mqtt_client; 
 
 
@@ -126,7 +136,7 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
         ESP_LOGD(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_DATA:
-        golain_mqtt_process_message(_golain_client, event->topic, event->topic_len, event->data, event->data_len);
+        golain_mqtt_process_message(_golain_client, event->topic, event->topic_len, event->data, event->data_len, event->total_data_len);
         ESP_LOGD(TAG, " %.*s %.*s", event->data_len, event->data, event->topic_len, event->topic);
         break;
 
@@ -160,12 +170,12 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         .client_cert_pem = (const char*)_golain_client->config->device_cert,
         .client_key_pem = (const char*)_golain_client->config->device_pvt_key,
         .client_id = CONFIG_GOLAIN_DEVICE_NAME,
-        .cert_pem = (const char *)_golain_client->config->broker_cert,
+        .cert_pem = (const char *)_golain_client->config->root_ca_cert_start,
         
     };
 
     esp_err_t res = esp_tls_init_global_ca_store();
-    res = esp_tls_set_global_ca_store((unsigned char *)_golain_client->config->root_ca_cert_start, _golain_client->config->root_ca_cert_end - _golain_client->config->root_ca_cert_start);
+    res = esp_tls_set_global_ca_store((unsigned char *)_golain_client->config->root_ca_cert_start, _golain_client->config->root_ca_cert_len);
 
     if(res != 0){
         ESP_LOGE(TAG,"Error code: 0x%08x\n", res);
@@ -320,13 +330,13 @@ golain_err_t _golain_hal_wifi_disconnect(void){
 golain_err_t _golain_hal_shadow_persistent_write(uint8_t * buff, size_t size){
     
     golain_err_t shadow_err;
-    esp_err_t err = nvs_open(NVS_SHADOW_KEY, NVS_READWRITE, &shadow_nvs_handle);
+    esp_err_t err = nvs_open(GOLAIN_SHADOW_NVS_KEY, NVS_READWRITE, &_golain_device_health_nvs_handle);
      if (err == ESP_ERR_NVS_NOT_INITIALIZED){
         ESP_LOGE(TAG, "NVS not initialised.");
         return NVS_NOT_INIT;
     } 
 
-    err = nvs_set_blob(shadow_nvs_handle, NVS_SHADOW_KEY, buff, size);
+    err = nvs_set_blob(_golain_device_health_nvs_handle, GOLAIN_SHADOW_NVS_KEY, buff, size);
 
     if(err != ESP_OK){
         ESP_LOGE(TAG, "NVS could not be updated");
@@ -339,21 +349,21 @@ golain_err_t _golain_hal_shadow_persistent_write(uint8_t * buff, size_t size){
         shadow_err = GOLAIN_OK;
     }
 
-    nvs_commit(shadow_nvs_handle);
-    nvs_close(shadow_nvs_handle);
+    nvs_commit(_golain_device_health_nvs_handle);
+    nvs_close(_golain_device_health_nvs_handle);
     return shadow_err;
 }
 
 golain_err_t _golain_hal_shadow_persistent_read(uint8_t * buff, size_t size){
     golain_err_t shadow_err;
-    esp_err_t err = nvs_open(NVS_SHADOW_KEY, NVS_READWRITE, &shadow_nvs_handle);
+    esp_err_t err = nvs_open(GOLAIN_SHADOW_NVS_KEY, NVS_READWRITE, &_golain_device_health_nvs_handle);
     if (err == ESP_ERR_NVS_NOT_INITIALIZED){
         ESP_LOGE(TAG, "NVS not initialised.");
         return NVS_NOT_INIT;
     } 
 
     size_t len = size;
-    err = nvs_get_blob(shadow_nvs_handle, NVS_SHADOW_KEY, buff, &len);
+    err = nvs_get_blob(_golain_device_health_nvs_handle, GOLAIN_SHADOW_NVS_KEY, buff, &len);
 
     if(err != ESP_OK){
         ESP_LOGE(TAG, "NVS could not be read");
@@ -364,10 +374,85 @@ golain_err_t _golain_hal_shadow_persistent_read(uint8_t * buff, size_t size){
         shadow_err = GOLAIN_OK;
     }
 
-    nvs_close(shadow_nvs_handle);
+    nvs_close(_golain_device_health_nvs_handle);
     return shadow_err;
 }
 
+/*-----------------------------------------OTA FUNCTIONS---------------------------------------------------------*/
+#ifdef CONFIG_GOLAIN_MQTT_OTA
+
+#define OTA_TAG "GOLAIN_MQTT_OTA"
+
+long _golain_ota_total_len = 0;
+long _golain_ota_current_len = 0;
+uint8_t _golain_ota_status = 0;
+esp_ota_handle_t _golain_ota_handle = 0;
+
+golain_err_t _golain_hal_ota_update(int event_total_data_len, char* event_data, int event_data_len)
+{
+    _golain_ota_current_len = _golain_ota_current_len + event_data_len;
+    ESP_LOGI(OTA_TAG, "current length %ld  total length %ld", _golain_ota_current_len, _golain_ota_total_len);
+
+    // Check if the message is an OTA update payload
+
+    // Get the OTA partition info
+    const esp_partition_t *partition = esp_ota_get_next_update_partition(NULL);
+    if (partition == NULL)
+    {
+        ESP_LOGI(OTA_TAG, "Error: could not find a valid OTA partition");
+        // Error: could not find a valid OTA partition
+        esp_mqtt_client_publish(_golain_mqtt_client, GOLAIN_OTA_STATUS_FAILED, "1", 1, 0, 0);
+        return GOLAIN_ERR_NOT_SUPPORTED;
+    }
+    if (!_golain_ota_status)
+    {
+        // Start the OTA update process
+        if (esp_ota_begin(partition, OTA_SIZE_UNKNOWN, &_golain_ota_handle) != ESP_OK)
+        {
+            // Error: could not start OTA update
+            ESP_LOGI(OTA_TAG, "Error: could not start OTA update");
+            esp_mqtt_client_publish(_golain_mqtt_client, GOLAIN_OTA_STATUS_FAILED, "1", 1, 0, 0);
+            return GOLAIN_ERR_INVALID_STATE;
+        }
+        _golain_ota_status = 1;
+    }
+
+    // Write the OTA update payload to the OTA partition
+    esp_err_t writeError = esp_ota_write(_golain_ota_handle, (void *)event_data, event_data_len);
+    if (writeError != ESP_OK)
+    {
+        ESP_LOGI(OTA_TAG, "Error: could not write OTA update payload to partition");
+        ESP_LOGI(OTA_TAG, "%s", esp_err_to_name(writeError));
+        esp_mqtt_client_publish(_golain_mqtt_client, GOLAIN_OTA_STATUS_FAILED, "1", 1, 0, 0);
+        return GOLAIN_ERR_NOT_FINISHED;
+    }
+    if (_golain_ota_total_len == _golain_ota_current_len)
+    {
+        ESP_LOGI(OTA_TAG, "Time to finalize the OTA ");
+        // Finalize the OTA update
+        if (esp_ota_end(_golain_ota_handle) != ESP_OK)
+        {
+            // Error: could not finalize OTA update
+            esp_mqtt_client_publish(_golain_mqtt_client, GOLAIN_OTA_STATUS_FAILED, "1", 1, 0, 0);
+            return GOLAIN_FAIL;
+        }
+        esp_err_t err = esp_ota_set_boot_partition(partition);
+        // Reboot the device to activate the new firmware
+        if (err != ESP_OK)
+        {
+            ESP_LOGI(OTA_TAG, "Error: could not set boot partition");
+            esp_mqtt_client_publish(_golain_mqtt_client, GOLAIN_OTA_STATUS_FAILED, "1", 1, 0, 0);
+            return GOLAIN_FAIL;
+        }
+        esp_mqtt_client_publish(_golain_mqtt_client, GOLAIN_OTA_STATUS_SUCCESS, "1", 1, 0, 0);
+        esp_restart();
+        return GOLAIN_OK;
+    }
+
+    return GOLAIN_OK;
+}
+
+#endif
 
 /*----------------------------------------------------BLE Fucntions ------------------------------------------------------------*/
 #ifdef CONFIG_GOLAIN_BLE
@@ -437,7 +522,9 @@ void host_task(void *param)
 }
 
 static int _golain_ble_shadow_read_cb(uint16_t con_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
-    os_mbuf_append(ctxt->om, shadow_buffer, _golain->config->shadow_size);
+    size_t size_encoded;
+    _golain_shadow_get_trimmed_shadow_buffer(_golain, &size_encoded);
+    os_mbuf_append(ctxt->om, shadow_buffer, size_encoded);
     return 0;
 }
 
@@ -496,6 +583,236 @@ golain_err_t golain_hal_ble_init(golain_t* golain){
     ble_hs_cfg.sync_cb = ble_app_on_sync;      // 5 - Initialize application
     nimble_port_freertos_init(host_task);      // 6 - Run the thread
     return GOLAIN_OK;
+}
+
+/*------------------------------------------------------------------------Persistent Logs----------------------------------------------------*/
+
+golain_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err)
+{
+    switch (err)
+    {
+    case ESP_OK:
+        printf("Done\n");
+        return GOLAIN_OK;
+    case ESP_ERR_NVS_NOT_FOUND:
+        printf("The value is not initialized yet!\n");
+        return NVS_READ_FAIL;
+    default:
+        printf("Error (%s) reading!\n", esp_err_to_name(err));
+        return GOLAIN_FAIL;
+    }
+}
+
+golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
+{
+    // open nvs_flash in readwrite mode
+    esp_err_t err;
+    nvs_handle_t p_log_handle;
+    err = nvs_open("p_logs", NVS_READWRITE, &p_log_handle);
+    if (err != ESP_OK)
+    {
+        return GOLAIN_FAIL;
+    }
+
+    // get last log id
+    int last_log_id;
+    if (nvs_get_i32(p_log_handle, "last_log_id", &last_log_id) ==
+        ESP_ERR_NVS_NOT_FOUND)
+    {
+        last_log_id = 0;
+    }
+
+    if (last_log_id == CONFIG_GOLAIN_MAX_PERSISTENT_LOGS)
+        last_log_id = 0;
+    else
+        last_log_id++;
+
+    // write to nvs flash
+    char key[2];
+    sprintf(key, "%d", last_log_id);
+    err = nvs_set_blob(p_log_handle, key, data, len);
+    if (err != ESP_OK)
+    {
+        return NVS_UPDATE_FAIL;
+    }
+
+    // store current log id
+    nvs_set_i32(p_log_handle, "last_log_id", last_log_id);
+
+    // commit changes
+    err = nvs_commit(p_log_handle);
+    if (err != ESP_OK)
+    {
+        return NVS_UPDATE_FAIL;
+    }
+    nvs_close(p_log_handle);
+#if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+    ESP_LOGI(TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+#endif
+    return GOLAIN_OK;
+}
+
+golain_err_t _golain_hal_p_log_write(esp_log_level_t level, const char *func,
+                      const char *tag, const char *format, ...)
+{
+    // create log entry
+    PLog plog = PLog_init_default;
+    plog.level = level;
+
+    plog.tag.funcs.encode = &golain_pb_encode_string;
+    plog.tag.arg = (void *)tag;
+
+    plog.function.funcs.encode = &golain_pb_encode_string;
+    plog.function.arg = (void *)func;
+
+    // get variable arguments
+    va_list list;
+    va_start(list, format);
+
+    /*
+     * buffer here is used to create the string log message as well as
+     * store the encoded protobuf message
+     */
+    uint8_t buffer[256];
+    memset(buffer, 0, 256);
+    vsprintf((char *)buffer, format, list);
+    // vprintf(format, list);
+    va_end(list);
+
+    plog.message.funcs.encode = &golain_pb_encode_string;
+    plog.message.arg = buffer;
+
+    plog.time_ms = esp_log_timestamp();
+
+    // create output stream
+    uint8_t out_buffer[256];
+    pb_ostream_t ostream = pb_ostream_from_buffer(out_buffer, sizeof(buffer));
+    pb_encode(&ostream, PLog_fields, &plog);
+
+    // write to nvs flash
+    esp_err_t err = _golain_hal_p_log_write_to_nvs(out_buffer, ostream.bytes_written);
+    // clear buffer
+    memset(out_buffer, 0, 256);
+
+    // return error code
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("PERSISTENT_LOGS", "Error writing to NVS (%s)",
+                 esp_err_to_name(err));
+        return GOLAIN_FAIL;
+    }
+    return GOLAIN_OK;
+}
+
+golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer)
+{
+    esp_err_t err;
+    nvs_handle_t p_log_handle;
+    err = nvs_open("p_logs", NVS_READWRITE, &p_log_handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error opening NVS (%s)", esp_err_to_name(err));
+        return NVS_READ_FAIL;
+    }
+    for (uint8_t i = 0; i <= CONFIG_GOLAIN_MAX_PERSISTENT_LOGS; i++)
+    {
+        char key[4];
+        sprintf(key, "%d", i);
+
+#if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+        ESP_LOGI(TAG, "Reading NVS key: %s", key);
+#endif
+        // get size of stored BLOB
+        size_t len;
+        err = nvs_get_blob(p_log_handle, key, NULL, &len);
+
+#if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+        ESP_LOGI(TAG, "Size of stored data: %d", len);
+#endif
+
+        if (len == 0)
+        {
+#if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+            ESP_LOGI(TAG, "Nothing stored here.");
+#endif
+            continue;
+        }
+        // get stored BLOB
+        err = nvs_get_blob(p_log_handle, key, buffer, &len);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+            continue;
+        }
+#if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
+        ESP_LOGI(TAG, "Read from NVS: PLogID:%d : %s", i, (char *)buffer);
+#endif
+        // _send_mqtt_message(buffer, len);
+    }
+    //   memset(buffer, 0, 256);
+    nvs_close(p_log_handle);
+    return GOLAIN_OK;
+}
+
+golain_err_t _golain_hal_p_log_get_number_of_logs(int *num)
+{
+    esp_err_t err;
+    nvs_handle_t p_log_handle;
+    err = nvs_open("p_logs", NVS_READWRITE, &p_log_handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error opening NVS (%s)", esp_err_to_name(err));
+        return NVS_READ_FAIL;
+    }
+
+    return nvs_get_i32(p_log_handle, "last_log_id", num);
+}
+/*-----------------------------------------------------------------------Device Health------------------------------------------------------*/
+golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto){
+    nvs_handle_t _golain_device_health_nvs_handle;
+
+    // Open
+    esp_err_t err = nvs_open(GOLAIN_DEVICE_HEALTH_NVS_KEY, NVS_READWRITE, &_golain_device_health_nvs_handle);
+    if (err != ESP_OK)
+        return NVS_READ_FAIL;
+
+    err = nvs_set_blob(_golain_device_health_nvs_handle, GOLAIN_DEVICE_HEALTH_NVS_KEY, deviceHealthproto, CONFIG_GOLAIN_DEVICE_HEALTH_BUFFER_SIZE);
+    if (err != ESP_OK)
+        return NVS_UPDATE_FAIL;
+
+    nvs_close(_golain_device_health_nvs_handle);
+    return GOLAIN_OK;
+} 
+
+int8_t _golain_hal_reset_counter(void){
+    int8_t num = 0;
+    nvs_handle_t _golain_device_health_nvs_handle;
+    esp_err_t err;
+
+    // Open
+    err = nvs_open(GOLAIN_DEVICE_HEALTH_NVS_KEY, NVS_READWRITE, &_golain_device_health_nvs_handle);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+      return num;
+    }
+
+    err = nvs_get_i8(_golain_device_health_nvs_handle, GOLAIN_DEVICE_HEALTH_RESET_COUNTER_NVS_KEY, &num);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+      return num;
+    }
+
+    num++;
+    err = nvs_set_i8(_golain_device_health_nvs_handle, GOLAIN_DEVICE_HEALTH_RESET_COUNTER_NVS_KEY, num);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Error reading NVS (%s)", esp_err_to_name(err));
+      return num;
+    }
+   
+    nvs_close(_golain_device_health_nvs_handle);
+    
+    return num;
+    
 }
 
 #endif

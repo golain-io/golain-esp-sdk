@@ -3,7 +3,9 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-// #include "pb.h"
+#include "pb.h"
+#include "pb_encode.h"
+#include "pb_decode.h"
 
 #define DATA_TOPIC(name) GOLAIN_DATA_TOPIC name
 
@@ -60,14 +62,7 @@ typedef struct _golain_config_t
     const void * device_cert;
     const void * device_pvt_key;
     const void * root_ca_cert_start;
-    const void * root_ca_cert_end;
-    const void * broker_cert;
-
-    #ifdef CONFIG_GOLAIN_WIFI
-    // Wifi creds
-    const char * wifi_ssid;
-    const char * wifi_password;
-    #endif
+    const uint32_t * root_ca_cert_len;
 
     #ifdef CONFIG_GOLAIN_BLE
     void (*on_shadow_update_from_ble)(void);
@@ -96,7 +91,7 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config);
 
 
 /*-------------------------------------------------------MQTT-------------------------------------*/
-golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t topic_len, char * data, size_t data_len);
+golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t topic_len, char * data, size_t data_len, size_t total_len);
 
 golain_err_t golain_mqtt_post_data_point(char* topic, const void* descriptor, void * data, uint32_t length);
 golain_err_t golain_mqtt_post_shadow(golain_t*);
@@ -124,6 +119,27 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
 /// @brief Updates shadow buffer and NVS with the GLOBAL SHADOW
 /// @return GOLAIN_OK if successful, otherwise, error codes will be received
 golain_err_t golain_shadow_update(golain_t*);
+
+
+golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t *, size_t* );
+
+/*------------------------------------------------------Persistent Logs-------------------------------------*/
+
+
+/*------------------------------------------------------Device Health---------------------------------------*/
+#ifdef CONFIG_GOLAIN_REPORT_DEVICE_HEALTH
+golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length);
+
+
+golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length);
+
+
+
+#endif
+/*------------------------------------------------------Nanopb callbacks-------------------------------------*/
+bool golain_pb_decode_string(pb_istream_t *stream, const pb_field_t *field, void **arg);
+
+bool golain_pb_encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg) ;
 
 
 #endif

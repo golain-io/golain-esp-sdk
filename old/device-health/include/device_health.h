@@ -84,7 +84,7 @@ bool encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length)
     message.deviceRevision = info.revision;
     message.numberOferrorsSinceLastReboot = errorCountSinceLastReset;
     message.userNumericData = 569.78;
-    message.numberOfReboots = restart_counter();
+    message.numberOfReboots = _golain_hal_reset_counter();
     message.userStringData.funcs.encode = encode_string;
     message.userStringData.arg = data;
 

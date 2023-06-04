@@ -1,4 +1,4 @@
-menu Golain
+menu "Golain"
 
     config GOLAIN_ROOT_TOPIC
         string "Root Topic"
@@ -19,6 +19,7 @@ menu Golain
 
     config WIFI_SSID
         string "Wifi SSID"
+        depends on GOLAIN_WIFI
         default "enter ssid"
         help
             The wifi ssid of your prefered wifi network
@@ -26,12 +27,14 @@ menu Golain
     config WIFI_PASSWORD
         string "Wifi password"
         default "enter wifi password"
+        depends on GOLAIN_WIFI
         help
             The wifi password of your prefered wifi network
 
     choice ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
         prompt "WiFi Scan auth mode threshold"
         default ESP_WIFI_AUTH_WPA2_PSK
+        depends on GOLAIN_WIFI
         help
             The weakest authmode to accept in the scan mode.
             This value defaults to ESP_WIFI_AUTH_WPA2_PSK incase password is present and ESP_WIFI_AUTH_OPEN is used.
@@ -65,15 +68,49 @@ menu Golain
         help
             Allows for Generic OTA updates via MQTT. Firmware updates are handled implicitly, others must be handled by the user.
     
-    config GOLAIN_CLOUD_LOGGING
-        bool "Enable Persistent Cloud Logging"
-        help
-            Adds support for persistent logging and push-to-cloud logs. Use P_ESP_LOG* macros to log to the cloud & console.
+    menu "Persistent Logging"
 
-    config GOLAIN_REPORT_DEVICE_HEALTH
-        bool "Report Device Health"
-        help
-            Reports device health to the cloud. This includes the device's free heap, uptime, and other useful information.
+        config GOLAIN_CLOUD_LOGGING
+            bool "Enable Persistent Cloud Logging"
+            help
+                Adds support for persistent logging and push-to-cloud logs. Use P_ESP_LOG* macros to log to the cloud & console.
+
+        config GOLAIN_MAX_PERSISTENT_LOGS
+            int "Maximum number of persistent logs"
+            depends on GOLAIN_CLOUD_LOGGING
+            default 50
+            help
+                This option specifies the maximum number of persistent logs
+                that can be stored on the system.  Persistent logs are
+                stored in NVS partition.
+        
+        config PERSISTENT_LOGS_INTERNAL_LOG_LEVEL
+            int "Internal log level"
+            depends on GOLAIN_CLOUD_LOGGING
+            default 0
+            help
+                This option specifies the internal log level for persistent
+                logs.  The value is a bitmask of log levels.  The default
+                value is 3, which means that both ERROR and WARNING logs
+                will be stored.
+
+        menu "Device Health"
+
+        config GOLAIN_REPORT_DEVICE_HEALTH
+            bool "Report Device Health"
+            depends on GOLAIN_CLOUD_LOGGING
+            help
+                Reports device health to the cloud. This includes the device's free heap, uptime, and other useful information.
+
+            config GOLAIN_DEVICE_HEALTH_BUFFER_SIZE
+                int "Device health buffer size"
+                depends on GOLAIN_REPORT_DEVICE_HEALTH
+                default 256
+                help
+                    Device health buffer size.
+        endmenu
+
+    endmenu
 
     config GOLAIN_SHADOW_BUFFER_SIZE
         int "Shadow Buffer Size"

@@ -26,8 +26,9 @@ int errorCountSinceLastReset = 0;
  */
 #define GOLAIN_LOG_I(tag, format, ...)                           \
   ESP_LOGI(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \
-  write_p_log(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
-
+  #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  _golain_hal_p_log_write(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+  #endif
 /**
  * @brief - Logs and stores the Warning statements given as a param
  *
@@ -40,13 +41,16 @@ int errorCountSinceLastReset = 0;
  */  
 #define GOLAIN_LOG_W(tag, format, ...)                           \
   ESP_LOGW(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \
-  write_p_log(ESP_LOG_WARN, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
-
-#ifdef CONFIG_DEVICE_HEALTH_STORE
+  #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  _golain_hal_p_log_write(ESP_LOG_WARN, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+  #endif
+#ifdef CONFIG_GOLAIN_REPORT_DEVICE_HEALTH
 #define GOLAIN_LOG_E(tag, format, ...)                                            \
   ESP_LOGE(tag, "(%s)-> " format, __func__, ##__VA_ARGS__);                  \
-  write_p_log(ESP_LOG_ERROR, __func__, "[%s]: " format, tag, ##__VA_ARGS__); \
+  #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  _golain_hal_p_log_write(ESP_LOG_ERROR, __func__, "[%s]: " format, tag, ##__VA_ARGS__); \
   errorCountSinceLastReset++;
+  #endif
 #else
 /**
  * @brief - Logs and stores the Error statements given as a param
@@ -60,24 +64,26 @@ int errorCountSinceLastReset = 0;
  */
 #define GOLAIN_LOG_E(tag, format, ...)                           \
   ESP_LOGE(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \
-  write_p_log(ESP_LOG_ERROR, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+  #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+  _golain_hal_p_log_write(ESP_LOG_ERROR, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
+#endif
 #endif
 
-esp_err_t check_nvs_errors(esp_err_t err);
+esp_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err);
 
-esp_err_t write_to_nvs(uint8_t *data, size_t len);
+esp_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len);
 
-    esp_err_t write_p_log(esp_log_level_t level, const char *func,
+esp_err_t _golain_hal_p_log_write(esp_log_level_t level, const char *func,
                           const char *tag, const char *format, ...);
 
-        esp_err_t read_old_logs(uint8_t *buffer);
+esp_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer);
 
-esp_err_t check_number_of_plogs(int* num);
-
-
+esp_err_t _golain_hal_check_number_of_plogs(int* num);
 
 
-esp_err_t check_nvs_errors(esp_err_t err)
+
+
+esp_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err)
 {
     switch (err)
     {
@@ -93,7 +99,7 @@ esp_err_t check_nvs_errors(esp_err_t err)
     }
 }
 
-esp_err_t write_to_nvs(uint8_t *data, size_t len)
+esp_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
 {
     // open nvs_flash in readwrite mode
     esp_err_t err;
@@ -142,7 +148,7 @@ esp_err_t write_to_nvs(uint8_t *data, size_t len)
     return err;
 }
 
-esp_err_t write_p_log(esp_log_level_t level, const char *func,
+esp_err_t _golain_hal_p_log_write(esp_log_level_t level, const char *func,
                       const char *tag, const char *format, ...)
 {
     // create log entry
@@ -180,7 +186,7 @@ esp_err_t write_p_log(esp_log_level_t level, const char *func,
     pb_encode(&ostream, PLog_fields, &plog);
 
     // write to nvs flash
-    esp_err_t err = write_to_nvs(out_buffer, ostream.bytes_written);
+    esp_err_t err = _golain_hal_p_log_write_to_nvs(out_buffer, ostream.bytes_written);
     // clear buffer
     memset(out_buffer, 0, 256);
 
@@ -193,7 +199,7 @@ esp_err_t write_p_log(esp_log_level_t level, const char *func,
     return err;
 }
 
-esp_err_t read_old_logs(uint8_t *buffer)
+esp_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer)
 {
     esp_err_t err;
     nvs_handle_t p_log_handle;
@@ -243,7 +249,7 @@ esp_err_t read_old_logs(uint8_t *buffer)
     return err;
 }
 
-esp_err_t check_number_of_plogs(int *num)
+esp_err_t _golain_hal_check_number_of_plogs(int *num)
 {
     esp_err_t err;
     nvs_handle_t p_log_handle;
