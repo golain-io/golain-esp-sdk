@@ -1,7 +1,7 @@
 #include "golain.h"
 #include "golain_hal.h"
 #include "golain_constants.h"
-#include "esp_log.h"
+// #include "esp_log.h"
 
 #include "pb.h"
 #include "pb_encode.h"
@@ -119,12 +119,12 @@ golain_err_t golain_mqtt_post_data_point(char* topic, const void* descriptor, vo
     bool status = pb_encode(&stream, (pb_msgdesc_t * )descriptor, data);
     
     if(!status){
-        ESP_LOGE(TAG, "Encoding failed: %s", PB_GET_ERROR(&stream));
+        GOLAIN_LOG_E(TAG, "Encoding failed: %s", PB_GET_ERROR(&stream));
         err = GOLAIN_FAIL;
         return err;
     }
     
-    ESP_LOGD(TAG, "Encoded %d bytes", stream.bytes_written);
+    GOLAIN_LOG_D(TAG, "Encoded %d bytes", stream.bytes_written);
     
     err = _golain_hal_mqtt_publish(topic, (char*)buffer, stream.bytes_written, 0, 0);
     
@@ -141,7 +141,7 @@ golain_err_t golain_mqtt_post_shadow(golain_t* _golain){
     _golain_shadow_get_trimmed_shadow_buffer(_golain, &size_encoded);
 
     int ret_val = _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)shadow_buffer, size_encoded, 1, 0);
-    ESP_LOGD(TAG, "Returned msg ID: %d", ret_val);
+    GOLAIN_LOG_D(TAG, "Returned msg ID: %d", ret_val);
 
     return GOLAIN_OK;
 }
@@ -168,13 +168,13 @@ golain_err_t golain_shadow_init(golain_t* _golain){
     _shadow_size = _golain->config->shadow_size;
     nvs_err = _golain_hal_shadow_persistent_read(shadow_buffer, size);
     if(!nvs_err){
-        ESP_LOGD(TAG, "Buffer in NVS found");
+        GOLAIN_LOG_D(TAG, "Buffer in NVS found");
         pb_istream_t istream = pb_istream_from_buffer(shadow_buffer, _shadow_size);
         bool decode_state = pb_decode(&istream, _shadow_fields, _shadow_pointer);
         
         if(!decode_state){
-            ESP_LOGE(TAG,"%s",istream.errmsg);
-            ESP_LOGW(TAG, "Decoding failed");
+            GOLAIN_LOG_E(TAG,"%s",istream.errmsg);
+            GOLAIN_LOG_W(TAG, "Decoding failed");
             return GOLAIN_FAIL;
         }
     }
@@ -191,8 +191,8 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
         pb_istream_t istream = pb_istream_from_buffer(buff, len);
         bool decode_status = pb_decode(&istream, _golain->config->shadow_fields, _golain->config->shadow_struct);
         if(!decode_status){
-            ESP_LOGE(TAG,"%s",istream.errmsg);
-            ESP_LOGE(TAG, "Decoding failed");
+            GOLAIN_LOG_E(TAG,"%s",istream.errmsg);
+            GOLAIN_LOG_E(TAG, "Decoding failed");
             shadow_err = PB_UPDATE_FAIL;
             return shadow_err;
         }   
@@ -204,18 +204,18 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
         }
     }
     else{
-        ESP_LOGE(TAG, "NULL Buffer");
+        GOLAIN_LOG_E(TAG, "NULL Buffer");
         shadow_err = PB_UPDATE_FAIL;    
     }   
     return shadow_err;
 }
 
 golain_err_t golain_shadow_update(golain_t *golain){
-    ESP_LOGD(TAG, "Updated using struct");
+    GOLAIN_LOG_D(TAG, "Updated using struct");
     pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, _shadow_size);
     
     if(!pb_encode(&ostream, _shadow_fields, _shadow_pointer)){
-        ESP_LOGE("TAG","%s",ostream.errmsg);
+        GOLAIN_LOG_E("TAG","%s",ostream.errmsg);
         return PB_ENCODE_FAIL;
     }
     // update in local store    
@@ -229,12 +229,12 @@ golain_err_t golain_shadow_update(golain_t *golain){
 golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t * golain, size_t* encoded_size){
     pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, golain->config->shadow_size);
     if(!pb_encode(&ostream, golain->config->shadow_fields, golain->config->shadow_struct)){
-        ESP_LOGE(TAG,"%s",ostream.errmsg);
+        GOLAIN_LOG_E(TAG,"%s",ostream.errmsg);
         return PB_ENCODE_FAIL;
     }
     *encoded_size = ostream.bytes_written;
     pb_get_encoded_size(encoded_size, golain->config->shadow_fields, golain->config->shadow_struct);
-    ESP_LOGI(TAG, "Encoded Length: %d", *encoded_size);
+    GOLAIN_LOG_I(TAG, "Encoded Length: %d", *encoded_size);
     return GOLAIN_OK;
 
 }
@@ -298,13 +298,13 @@ golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message
     if (status)
     {
 
-        ESP_LOGI("debug", "was called from %s", __func__);
-        ESP_LOGI("decode", "number of errors since last reboot: %d", message.numberOferrorsSinceLastReboot);
-        ESP_LOGI("decode", "last reboot reason %d", message.lastRebootReason);
-        ESP_LOGI("decode", "number of reboots: %d", message.numberOfReboots);
-        ESP_LOGI("decode", "chip revision: %d", message.deviceRevision);
-        ESP_LOGI("decode", "user numeric data: %f", message.userNumericData);
-        ESP_LOGI("decode", "user string data: %s", rx);
+        GOLAIN_LOG_I("debug", "was called from %s", __func__);
+        GOLAIN_LOG_I("decode", "number of errors since last reboot: %d", message.numberOferrorsSinceLastReboot);
+        GOLAIN_LOG_I("decode", "last reboot reason %d", message.lastRebootReason);
+        GOLAIN_LOG_I("decode", "number of reboots: %d", message.numberOfReboots);
+        GOLAIN_LOG_I("decode", "chip revision: %d", message.deviceRevision);
+        GOLAIN_LOG_I("decode", "user numeric data: %f", message.userNumericData);
+        GOLAIN_LOG_I("decode", "user string data: %s", rx);
     }
     else
     {

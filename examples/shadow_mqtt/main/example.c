@@ -5,6 +5,7 @@
 
 #include "golain.h"
 #include "shadow.pb.h"
+#include "data.pb.h"
 
 extern const char mqtt_device_cert_pem_start[] asm("_binary_device_cert_pem_start");
 extern const char mqtt_device_cert_pem_end[] asm("_binary_device_cert_pem_end");
@@ -19,6 +20,8 @@ extern const char mqtt_broker_cert_pem_start[] asm("_binary_mqtt_broker_cert_pem
 extern const char mqtt_broker_cert_pem_end[] asm("_binary_mqtt_broker_cert_pem_end");
 
 Shadow shadow = Shadow_init_zero;
+
+MPU myMPU = MPU_init_zero;
 
 void app_main() {
 

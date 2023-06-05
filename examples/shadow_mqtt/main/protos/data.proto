@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message MPU{
+int32 ax =1;
+int32 ay =2;
+int32 az =3;
+int32 gx =4;
+int32 gy =5;
+int32 gz =6;
+}

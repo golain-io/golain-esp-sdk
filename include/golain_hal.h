@@ -104,6 +104,11 @@ golain_err_t _golain_hal_shadow_persistent_read(uint8_t * buff, size_t size);
  * @param ... n Number of variable arguments that can be added as a part of log statement
  *
  */
+
+#define GOLAIN_LOG_D(tag, format, ...) \
+    ESP_LOGD(tag, "(%s)-> " format, __func__, ##__VA_ARGS__);
+
+
 #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
   #define GOLAIN_LOG_E(tag, format, ...) \
     ESP_LOGE(tag, "(%s)-> " format, __func__, ##__VA_ARGS__); \

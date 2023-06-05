@@ -595,7 +595,7 @@ golain_err_t golain_hal_ble_init(golain_t* golain){
 }
 
 /*------------------------------------------------------------------------Persistent Logs----------------------------------------------------*/
-
+#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
 golain_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err)
 {
     switch (err)
@@ -776,7 +776,10 @@ golain_err_t _golain_hal_p_log_get_number_of_logs(int *num)
 
     return nvs_get_i32(p_log_handle, "last_log_id", num);
 }
+#endif
 /*-----------------------------------------------------------------------Device Health------------------------------------------------------*/
+#ifdef GOLAIN_REPORT_DEVICE_HEALTH
+
 golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto){
     nvs_handle_t _golain_device_health_nvs_handle;
 
@@ -823,5 +826,6 @@ int8_t _golain_hal_reset_counter(void){
     return num;
     
 }
+#endif
 
 #endif

@@ -6,6 +6,7 @@
 #include "pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
+#include "golain_constants.h"
 
 #define DATA_TOPIC(name) GOLAIN_DATA_TOPIC name
 

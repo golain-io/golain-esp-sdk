@@ -7,3 +7,6 @@
 [submodule "examples/shadow_mqtt/components/nanopb"]
 	path = examples/shadow_mqtt/components/nanopb
 	url = https://github.com/IshanDaga/nanopb
+[submodule "examples/data_points_publish/components/nanopb"]
+	path = examples/data_points_publish/components/nanopb
+	url = https://github.com/IshanDaga/nanopb.git
