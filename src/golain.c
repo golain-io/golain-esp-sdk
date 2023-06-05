@@ -45,6 +45,15 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
     golain->ble = NULL;
     #endif
 
+
+    #ifdef CONFIG_GOLAIN_BLE
+    // initialise ble client
+    err = golain_hal_ble_init(golain);
+    if (err != GOLAIN_OK) {
+        return err;
+    }
+    #endif
+
     #ifdef CONFIG_GOLAIN_WIFI
     // initialise wifi
     _golain_hal_wifi_init();
@@ -61,13 +70,6 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
         return err;
     }
 
-    #ifdef CONFIG_GOLAIN_BLE
-    // initialise ble client
-    err = golain_hal_ble_init(golain);
-    if (err != GOLAIN_OK) {
-        return err;
-    }
-    #endif
 
     return err;
 }
@@ -173,8 +175,8 @@ golain_err_t golain_shadow_init(golain_t* _golain){
         bool decode_state = pb_decode(&istream, _shadow_fields, _shadow_pointer);
         
         if(!decode_state){
-            GOLAIN_LOG_E(TAG,"%s",istream.errmsg);
-            GOLAIN_LOG_W(TAG, "Decoding failed");
+            GOLAIN_LOG_W(TAG,"%s",istream.errmsg);
+            // GOLAIN_LOG_W(TAG, "Decoding failed");
             return GOLAIN_FAIL;
         }
     }

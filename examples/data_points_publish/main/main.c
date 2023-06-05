@@ -53,7 +53,7 @@ void app_main() {
         myMPU.gz = (int32_t)rand();
 
 
-        golain_mqtt_post_data_point(DATA_TOPIC("MPU"), MPU_fields, &myMPU, MPU_size);//char* topic, const void* descriptor, void * data, uint32_t length
+        golain_mqtt_post_data_point(DATA_TOPIC("MPU"), MPU_fields, &myMPU, MPU_size);
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
 

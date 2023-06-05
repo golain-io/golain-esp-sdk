@@ -266,7 +266,7 @@ golain_err_t _golain_hal_wifi_init(void){
     
 
     s_wifi_event_group = xEventGroupCreate();
-
+    wifi_config_t wifi_config;
     ESP_ERROR_CHECK(esp_netif_init());
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -279,15 +279,29 @@ golain_err_t _golain_hal_wifi_init(void){
     esp_event_handler_instance_t instance_got_ip;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &golain_wifi_event_handler, NULL, &instance_any_id));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &golain_wifi_event_handler, NULL, &instance_got_ip));
-    wifi_config_t wifi_config = {
-        .sta = {
-                .ssid = CONFIG_WIFI_SSID,
-                .password = CONFIG_WIFI_PASSWORD,
-                .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
-                .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-            },
-    };
-    
+    esp_err_t ret = esp_wifi_get_config(WIFI_IF_STA, &wifi_config);
+    if (ret == ESP_OK && strlen((char*)wifi_config.sta.password) > 7)
+    {
+        ESP_LOGI(TAG, "NVS %s" ,wifi_config.sta.ssid);
+        ESP_LOGI(TAG, "NVS %s" ,wifi_config.sta.password);
+        for(uint8_t ffs = 0; ffs < 33 ; ffs += 1){
+            printf(" %02x", wifi_config.sta.ssid[ffs]);
+        }
+        printf("\n");
+        for(uint8_t ffs = 0 ; ffs < 64 ; ffs += 1){
+            printf(" %02x", wifi_config.sta.password[ffs]);
+        }
+        printf("\n");
+    }
+    else{
+        memset(wifi_config.sta.ssid, 0x00, 32);
+        memset(wifi_config.sta.password, 0x00, 64);
+        memcpy(wifi_config.sta.ssid, CONFIG_WIFI_SSID, strlen(CONFIG_WIFI_SSID));
+        memcpy(wifi_config.sta.password, CONFIG_WIFI_PASSWORD, strlen(CONFIG_WIFI_PASSWORD));
+    }
+
+    wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH; 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -302,10 +316,10 @@ golain_err_t _golain_hal_wifi_init(void){
      * happened. */
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
-                 CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
+                 wifi_config.sta.ssid, wifi_config.sta.password);
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
-                 CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
+                 wifi_config.sta.ssid, wifi_config.sta.password);
         return GOLAIN_FAIL;
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
@@ -366,7 +380,7 @@ golain_err_t _golain_hal_shadow_persistent_read(uint8_t * buff, size_t size){
     err = nvs_get_blob(_golain_device_health_nvs_handle, GOLAIN_SHADOW_NVS_KEY, buff, &len);
 
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "NVS could not be read");
+        ESP_LOGE(TAG, "NVS could not be read %d", err);
         shadow_err = NVS_READ_FAIL;
     }
     else{
@@ -545,10 +559,57 @@ static int _golain_ble_associate_user_cb(uint16_t conn_handle, uint16_t attr_han
 
 #endif
 
+
+#ifdef CONFIG_GOLAIN_WIFI
+
+void split_wifi_creds_by_token(char* input_array, size_t input_len, char* wifi_ssid, char* wifi_pass, const char * separator) {
+    memset(wifi_ssid, '\0', 33);
+    memset(wifi_ssid, '\0', 64);
+    for(int i = 0; i < input_len; i++){
+        if(input_array[i] == *separator){
+            strncpy(wifi_ssid, input_array, i);
+            strncpy(wifi_pass, input_array+(i+1), input_len-(i+1));
+            printf("%d; %d\n", strlen(wifi_ssid), strlen(wifi_pass));
+            return;
+        }
+    }
+}
+
+char _golain_ble_wifi_rcvbuff[32+64+1]; // 32 SSID, 63 PASS, 2: null + 2x separator
+char newssid[32];
+char newpass[64];
+#define GOLAIN_WIFI_CREDS_SEPARATION_CHAR ","
+
 static int _golain_ble_configure_wifi_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
-    printf("Data from the WIFI client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
+    // printf("Data from the WIFI client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
+    
+    wifi_config_t wifi_config;
+
+    esp_wifi_get_config(WIFI_IF_STA, &wifi_config);
+
+    memset(_golain_ble_wifi_rcvbuff, '\0', (32+64+1));
+    strncpy(_golain_ble_wifi_rcvbuff, (char*)ctxt->om->om_data, ctxt->om->om_len);
+
+
+    split_wifi_creds_by_token(_golain_ble_wifi_rcvbuff, ctxt->om->om_len, newssid, newpass, GOLAIN_WIFI_CREDS_SEPARATION_CHAR);
+    memset(wifi_config.sta.ssid, '\0', 32);
+    memset(wifi_config.sta.password, '\0', 64);
+    strncpy((char *)wifi_config.sta.ssid, newssid, strlen((char*)newssid));
+    strncpy((char *)wifi_config.sta.password, newpass, strlen((char*)newpass));
+
+    wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH; 
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    printf("SSID: %s, Password: %s", wifi_config.sta.ssid, wifi_config.sta.password); 
+
+    esp_wifi_disconnect();
+    esp_wifi_connect();
     return 0;
 }
+
+#endif
+
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {.type = BLE_GATT_SVC_TYPE_PRIMARY,
      .uuid = BLE_UUID16_DECLARE(0x3F23),                 // Define UUID for golain device type
@@ -570,11 +631,13 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
             .access_cb = _golain_ble_associate_user_cb,
         },
         #endif
+        #ifdef CONFIG_GOLAIN_WIFI
         { // configure wifi
             .uuid = BLE_UUID16_DECLARE(0x5FDD),
             .flags = BLE_GATT_CHR_F_WRITE,
             .access_cb = _golain_ble_configure_wifi_cb,
         },
+        #endif
         {0}
         }
     },
