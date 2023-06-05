@@ -1,0 +1,12 @@
+version: "0.1.0-b1"
+description: SDK to connect devices to Golain Platform and Golain Mobile Applications
+maintainers:
+  - Ishan Daga <https://github.com/IshanDaga>
+  - Malhaar Karandikar <https://github.com/Malhaar-k>
+url: https://docs.golain.io
+repository: https://github.com/golain-io/golain-esp-sdk
+documentation: https://dev.docs.golain.io/docs/sdks/hardware/esp/
+issues: https://github.com/golain-io/golain-esp-sdk/issues
+dependencies:
+  idf:
+    version: ">=4.3, <5.0"
