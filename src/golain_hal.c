@@ -85,8 +85,10 @@ esp_mqtt_client_handle_t _golain_mqtt_client;
 
 
 // wifi
+#ifdef CONFIG_GOLAIN_WIFI
 static int s_retry_num = 0;
 static EventGroupHandle_t s_wifi_event_group;
+#endif
 
 golain_t* _golain;
 
@@ -284,13 +286,13 @@ golain_err_t _golain_hal_wifi_init(void){
     {
         ESP_LOGI(TAG, "NVS %s" ,wifi_config.sta.ssid);
         ESP_LOGI(TAG, "NVS %s" ,wifi_config.sta.password);
-        for(uint8_t ffs = 0; ffs < 33 ; ffs += 1){
-            printf(" %02x", wifi_config.sta.ssid[ffs]);
-        }
-        printf("\n");
-        for(uint8_t ffs = 0 ; ffs < 64 ; ffs += 1){
-            printf(" %02x", wifi_config.sta.password[ffs]);
-        }
+        // for(uint8_t ffs = 0; ffs < 33 ; ffs += 1){
+        //     printf(" %02x", wifi_config.sta.ssid[ffs]);
+        // }
+        // printf("\n");
+        // for(uint8_t ffs = 0 ; ffs < 64 ; ffs += 1){
+        //     printf(" %02x", wifi_config.sta.password[ffs]);
+        // }
         printf("\n");
     }
     else{
@@ -545,6 +547,7 @@ static int _golain_ble_shadow_read_cb(uint16_t con_handle, uint16_t attr_handle,
 static int _golain_ble_shadow_write_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     _golain_shadow_update_from_buffer(_golain, ctxt->om->om_data,  ctxt->om->om_len); // Updating the shadow from the rceived buffer
     golain_mqtt_post_shadow(_golain);
+    
     ESP_LOGI(TAG, "Data from the SHADOW client: %s\n", shadow_buffer);
     return 0;
 }

@@ -23,6 +23,8 @@ size_t _shadow_size;
 
 /*-----------------------------------------Call Back functions------------------------------------------*/
 void (*_golain_mqtt_shadow_cb)(void);
+void (*_golain_mqtt_shadow_cb)(void);
+
 
 /*-----------------------------------------User Level Functions-----------------------------------------*/
 golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
@@ -89,6 +91,7 @@ golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t 
         memset(shadow_buffer, 0x00, CONFIG_GOLAIN_SHADOW_BUFFER_SIZE);
         memcpy(shadow_buffer, data, _cpy_len);
         _golain_shadow_update_from_buffer(_golain, shadow_buffer, _cpy_len);
+        
     }
 
     #ifdef CONFIG_GOLAIN_MQTT_OTA
