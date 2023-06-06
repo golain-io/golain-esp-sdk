@@ -25,6 +25,7 @@
 #include "nvs_flash.h"
 
 #include "golain.h"
+#include "golain_hal.h"
 #include "shadow.pb.h"
 
 
@@ -65,7 +66,8 @@ void app_main() {
     golain_init(&golain, &golain_config);
 
     while (1) {
-        vTaskDelay(1);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        GOLAIN_LOG_I("OTA Example", "Hi!");
     }
 
 }

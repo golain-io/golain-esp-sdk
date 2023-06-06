@@ -105,11 +105,6 @@ int golain_init(golain_config *client)
     wifi_init_sta(client->wifissid, client->wifipass);
 #endif
 
-#ifdef GOLAIN_OTA_ENABLE
-    ESP_ERROR_CHECK(nvs_flash_init());
-    esp_mqtt_client_subscribe(client, DEVICE_OTA_TOPIC, 0);
-#endif
-
 #ifdef GOLAIN_BLE_ENABLE
     bt_mesh_custom_start(client->bleconfig);
 #endif 
