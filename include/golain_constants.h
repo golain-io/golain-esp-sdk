@@ -55,10 +55,12 @@
 
 // suffixes for OTA topics are the same as defined in each artifact within a release
 #define GOLAIN_OTA_TOPIC CONFIG_GOLAIN_ROOT_TOPIC CONFIG_GOLAIN_DEVICE_NAME "/ota/"
+#define GOLAIN_OTA_SUBSCRIBE_TOPIC GOLAIN_OTA_TOPIC "+"
 #define GOLAIN_OTA_UPDATE_TOPIC GOLAIN_OTA_TOPIC "firmware"
 #define GOLAIN_OTA_STATUS_TOPIC GOLAIN_OTA_TOPIC "status"
 #define GOLAIN_OTA_STATUS_SUCCESS "success"
 #define GOLAIN_OTA_STATUS_FAILED "failure"
+#define GOLAIN_OTA_REQUEST_TOPIC GOLAIN_OTA_TOPIC "request"
 
 #define GOLAIN_LOG_TOPIC CONFIG_GOLAIN_ROOT_TOPIC CONFIG_GOLAIN_DEVICE_NAME "/device-logs"
 
@@ -66,6 +68,8 @@
 #define GOLAIN_SHADOW_UPDATE_TOPIC_LEN  ( ( uint16_t ) ( sizeof( GOLAIN_SHADOW_UPDATE_TOPIC ) - 1 ) )
 #define GOLAIN_SHADOW_READ_TOPIC_LEN    ( ( uint16_t ) ( sizeof( GOLAIN_SHADOW_READ_TOPIC ) - 1 ) )
 #define GOLAIN_DATA_TOPIC_LEN           ( ( uint16_t ) ( sizeof( GOLAIN_DATA_TOPIC ) - 1 ) )
+#define GOLAIN_OTA_TOPIC_LEN            ( ( uint16_t ) ( sizeof( GOLAIN_OTA_TOPIC ) - 1 ) )
+#define GOLAIN_OTA_SUBSCRIBE_TOPIC_LEN  ( ( uint16_t ) ( sizeof( GOLAIN_OTA_SUBSCRIBE_TOPIC ) - 1 ) )
 #define GOLAIN_OTA_UPDATE_TOPIC_LEN     ( ( uint16_t ) ( sizeof( GOLAIN_OTA_UPDATE_TOPIC ) - 1 ) )
 #define GOLAIN_OTA_STATUS_TOPIC_LEN     ( ( uint16_t ) ( sizeof( GOLAIN_OTA_STATUS_TOPIC ) - 1 ) )
 #define GOLAIN_LOG_TOPIC_LEN            ( ( uint16_t ) ( sizeof( GOLAIN_LOG_TOPIC ) - 1 ) )

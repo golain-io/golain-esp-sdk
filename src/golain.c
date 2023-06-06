@@ -101,6 +101,8 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
 /*-----------------------------------------MQTT---------------------------------------------------------*/
 golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t topic_len, char* data, size_t data_len, size_t total_len) {
     golain_err_t err = GOLAIN_OK;
+
+    GOLAIN_LOG_I(TAG, "Rcv Topic: %.*s", topic_len, topic);
     
     if (topic == NULL || data == NULL) {
         return GOLAIN_ERR_INVALID_ARG;
@@ -117,7 +119,8 @@ golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t 
 
     #ifdef CONFIG_GOLAIN_MQTT_OTA
     
-    if (strncmp(GOLAIN_OTA_TOPIC, topic, GOLAIN_OTA_UPDATE_TOPIC_LEN) == 0) {
+    if (strncmp(GOLAIN_OTA_TOPIC, topic, GOLAIN_OTA_TOPIC_LEN) == 0) {
+        GOLAIN_LOG_I(TAG, "Received ota data");
         // check if full topic is firmware update
         if (strncmp(GOLAIN_OTA_UPDATE_TOPIC, topic, GOLAIN_OTA_UPDATE_TOPIC_LEN) == 0){
             // update firmware
