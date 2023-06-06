@@ -20,13 +20,13 @@ menu "Golain"
     config WIFI_SSID
         string "Wifi SSID"
         depends on GOLAIN_WIFI
-        default "enter ssid"
+        default "Enter ssid"
         help
             The wifi ssid of your prefered wifi network
     
     config WIFI_PASSWORD
         string "Wifi password"
-        default "enter wifi password"
+        default "Enter wifi password"
         depends on GOLAIN_WIFI
         help
             The wifi password of your prefered wifi network
@@ -87,7 +87,7 @@ menu "Golain"
         config PERSISTENT_LOGS_INTERNAL_LOG_LEVEL
             int "Internal log level"
             depends on GOLAIN_CLOUD_LOGGING
-            default 0
+            default 3
             help
                 This option specifies the internal log level for persistent
                 logs.  The value is a bitmask of log levels.  The default
@@ -112,14 +112,14 @@ menu "Golain"
 
     endmenu
 
-    config GOLAIN_SHADOW_BUFFER_SIZE
+config GOLAIN_SHADOW_BUFFER_SIZE
         int "Shadow Buffer Size"
         default 128
         help
             The size of the shadow buffer. This is used to store the device's shadow document. Increase this if you have a large shadow document.
 
-    config GOLAIN_CONSUMER_ENABLED
-        bool "Enable Consumer"
+config GOLAIN_CONSUMER_ENABLED
+        bool "Enable Consumer applictions"
         help
             Enables consumer applications & user association. See Docs for more info.
 
