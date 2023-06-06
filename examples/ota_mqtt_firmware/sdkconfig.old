@@ -1238,7 +1238,7 @@ CONFIG_GOLAIN_ROOT_TOPIC="/xxxx_xxxx/"
 CONFIG_GOLAIN_DEVICE_NAME="xxxx"
 # CONFIG_GOLAIN_WIFI is not set
 # CONFIG_GOLAIN_BLE is not set
-CONFIG_GOLAIN_MQTT_OTA=y
+# CONFIG_GOLAIN_MQTT_OTA is not set
 
 #
 # Persistent Logging
