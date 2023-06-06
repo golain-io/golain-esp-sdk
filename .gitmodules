@@ -13,3 +13,9 @@
 [submodule "examples/shadow_mqtt_ble/components/nanopb"]
 	path = examples/shadow_mqtt_ble/components/nanopb
 	url = https://github.com/IshanDaga/nanopb.git
+[submodule "examples/ota_mqtt_firmware/nanopb"]
+	path = examples/ota_mqtt_firmware/nanopb
+	url = https://github.com/golain-io/nanopb.git
+[submodule "examples/ota_mqtt_firmware/components/nanopb"]
+	path = examples/ota_mqtt_firmware/components/nanopb
+	url = https://github.com/golain-io/nanopb.git
