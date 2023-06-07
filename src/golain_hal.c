@@ -193,10 +193,8 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
 
     #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
-    #define GOLAIN_MQTT_BROKER_URI_PORT GOLAIN_MQTT_BROKER_URI ":" STR(GOLAIN_MQTT_BROKER_PORT)
-
     const esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = GOLAIN_MQTT_BROKER_URI_PORT,
+        .broker.address.uri = GOLAIN_MQTT_BROKER_URL,
         .broker.verification.certificate = (const char*)_golain_client->config->root_ca_cert_start,
         .credentials = {
             .authentication = {
@@ -205,7 +203,7 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
             }
         }
     };
-
+    
     #else 
 
     const esp_mqtt_client_config_t mqtt_cfg = {
@@ -584,7 +582,7 @@ void host_task(void *param)
 static int _golain_ble_shadow_read_cb(uint16_t con_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     size_t size_encoded;
     _golain_shadow_get_trimmed_shadow_buffer(_golain, &size_encoded);
-    os_mbuf_append(ctxt->om, shadow_buffer, size_encoded);
+    os_mbuf_append(ctxt->om, _golain->config->shadow_buffer, size_encoded);
     return 0;
 }
 
@@ -592,7 +590,7 @@ static int _golain_ble_shadow_write_cb(uint16_t conn_handle, uint16_t attr_handl
     _golain_shadow_update_from_buffer(_golain, ctxt->om->om_data,  ctxt->om->om_len); // Updating the shadow from the rceived buffer
     golain_mqtt_post_shadow(_golain);
     
-    ESP_LOGI(TAG, "Data from the SHADOW client: %s\n", shadow_buffer);
+    ESP_LOGI(TAG, "Data from the SHADOW client: %s\n", _golain->config->shadow_buffer);
     return 0;
 }
 

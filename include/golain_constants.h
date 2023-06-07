@@ -43,6 +43,8 @@
 #define GOLAIN_MQTT_BROKER_URI "mqtts://dev.golain.io"
 #define GOLAIN_MQTT_BROKER_PORT 8083
 
+#define GOLAIN_MQTT_BROKER_URL "mqtts://dev.golain.io:8083"
+
 // MQTT topics for all actions
 #define GOLAIN_SHADOW_TOPIC CONFIG_GOLAIN_ROOT_TOPIC CONFIG_GOLAIN_DEVICE_NAME "/device-shadow"
 #define GOLAIN_SHADOW_UPDATE_TOPIC GOLAIN_SHADOW_TOPIC "/u"

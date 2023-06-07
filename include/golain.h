@@ -34,6 +34,8 @@
 
 #define DATA_TOPIC(name) GOLAIN_DATA_TOPIC name
 
+golain_err_t golain_hal_init(golain_t * _golain);
+
 golain_err_t golain_init(golain_t *golain, golain_config_t *config);
 
 

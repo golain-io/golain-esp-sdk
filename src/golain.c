@@ -36,17 +36,6 @@
 
 #define TAG "GOLAIN"
 
-/*------------------------------------------Variables-----------------------------------*/
-void * _shadow_pointer;
-pb_msgdesc_t* _shadow_fields;
-size_t _shadow_size;
-//Change to save
-
-/*-----------------------------------------Call Back functions------------------------------------------*/
-void (*_golain_mqtt_shadow_cb)(void);
-void (*_golain_mqtt_shadow_cb)(void);
-
-
 /*-----------------------------------------User Level Functions-----------------------------------------*/
 golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
     golain_err_t err = GOLAIN_OK;
@@ -109,9 +98,9 @@ golain_err_t golain_mqtt_process_message(golain_t* _golain, char* topic, size_t 
     // check if topic is shadow read
     if (strncmp(GOLAIN_SHADOW_READ_TOPIC, topic, GOLAIN_SHADOW_READ_TOPIC_LEN) == 0) {
         size_t _cpy_len = data_len > CONFIG_GOLAIN_SHADOW_BUFFER_SIZE ? CONFIG_GOLAIN_SHADOW_BUFFER_SIZE : data_len;
-        memset(shadow_buffer, 0x00, CONFIG_GOLAIN_SHADOW_BUFFER_SIZE);
-        memcpy(shadow_buffer, data, _cpy_len);
-        _golain_shadow_update_from_buffer(_golain, shadow_buffer, _cpy_len);
+        memset(_golain->config->shadow_buffer, 0x00, CONFIG_GOLAIN_SHADOW_BUFFER_SIZE);
+        memcpy(_golain->config->shadow_buffer, data, _cpy_len);
+        _golain_shadow_update_from_buffer(_golain, _golain->config->shadow_buffer, _cpy_len);
         
     }
 
@@ -166,7 +155,7 @@ golain_err_t golain_mqtt_post_shadow(golain_t* _golain){
     size_t size_encoded;
     _golain_shadow_get_trimmed_shadow_buffer(_golain, &size_encoded);
 
-    int ret_val = _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)shadow_buffer, size_encoded, 1, 0);
+    int ret_val = _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)_golain->config->shadow_buffer, size_encoded, 1, 0);
     GOLAIN_LOG_D(TAG, "Returned msg ID: %d", ret_val);
 
     return GOLAIN_OK;
@@ -189,14 +178,11 @@ golain_err_t golain_shadow_init(golain_t* _golain){
 //    custom_cb = temp_cfg.shadow_update_cb;
     golain_err_t nvs_err;
     size_t size = CONFIG_GOLAIN_SHADOW_BUFFER_SIZE;
-    _shadow_fields = (pb_msgdesc_t *)(_golain->config->shadow_fields);
-    _shadow_pointer = _golain->config->shadow_struct;
-    _shadow_size = _golain->config->shadow_size;
-    nvs_err = _golain_hal_shadow_persistent_read(shadow_buffer, size);
+    nvs_err = _golain_hal_shadow_persistent_read(_golain->config->shadow_buffer, size);
     if(!nvs_err){
         GOLAIN_LOG_D(TAG, "Buffer in NVS found");
-        pb_istream_t istream = pb_istream_from_buffer(shadow_buffer, _shadow_size);
-        bool decode_state = pb_decode(&istream, _shadow_fields, _shadow_pointer);
+        pb_istream_t istream = pb_istream_from_buffer(_golain->config->shadow_buffer, _golain->config->shadow_size);
+        bool decode_state = pb_decode(&istream, _golain->config->shadow_fields, _golain->config->shadow_struct);
         
         if(!decode_state){
             GOLAIN_LOG_W(TAG,"%s",istream.errmsg);
@@ -238,22 +224,22 @@ golain_err_t _golain_shadow_update_from_buffer(golain_t* _golain, uint8_t * buff
 
 golain_err_t golain_shadow_update(golain_t *golain){
     GOLAIN_LOG_D(TAG, "Updated using struct");
-    pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, _shadow_size);
+    pb_ostream_t ostream = pb_ostream_from_buffer(golain->config->shadow_buffer, golain->config->shadow_size);
     
-    if(!pb_encode(&ostream, _shadow_fields, _shadow_pointer)){
+    if(!pb_encode(&ostream, golain->config->shadow_fields, golain->config->shadow_struct)){
         GOLAIN_LOG_E("TAG","%s",ostream.errmsg);
         return PB_ENCODE_FAIL;
     }
     // update in local store    
-    _golain_hal_shadow_persistent_write(shadow_buffer, _shadow_size);
+    _golain_hal_shadow_persistent_write(golain->config->shadow_buffer, golain->config->shadow_size);
     // publish to cloud
-    _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)shadow_buffer, _shadow_size, 1, 0);
+    _golain_hal_mqtt_publish(GOLAIN_SHADOW_UPDATE_TOPIC, (char*)golain->config->shadow_buffer, golain->config->shadow_size, 1, 0);
     
     return GOLAIN_OK;
 }
 
 golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t * golain, size_t* encoded_size){
-    pb_ostream_t ostream = pb_ostream_from_buffer(shadow_buffer, golain->config->shadow_size);
+    pb_ostream_t ostream = pb_ostream_from_buffer(golain->config->shadow_buffer, golain->config->shadow_size);
     if(!pb_encode(&ostream, golain->config->shadow_fields, golain->config->shadow_struct)){
         GOLAIN_LOG_E(TAG,"%s",ostream.errmsg);
         return PB_ENCODE_FAIL;

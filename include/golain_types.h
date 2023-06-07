@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "sdkconfig.h"
 
+
 typedef enum _golain_err_t
 {
     GOLAIN_OK = 0,    /*!< esp_err_t value indicating success (no error) */
@@ -53,6 +54,7 @@ typedef struct _golain_config_t
     void * shadow_struct;
     const void * shadow_fields;
     size_t shadow_size;
+    uint8_t shadow_buffer[CONFIG_GOLAIN_SHADOW_BUFFER_SIZE];
 
     // mqtt certs
     const void * device_cert;
@@ -80,10 +82,6 @@ typedef struct _golain_t
     #endif
 
 } golain_t;
-
-golain_err_t golain_hal_init(golain_t * _golain);
-
-uint8_t shadow_buffer[CONFIG_GOLAIN_SHADOW_BUFFER_SIZE];
 
 #ifdef CONFIG_GOLAIN_BLE
 // ble functions
