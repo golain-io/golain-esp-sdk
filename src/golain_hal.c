@@ -19,29 +19,32 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "golain_hal.h"
 #include "golain_constants.h"
+#include "golain_types.h"
 #include "golain.h"
+#include "golain_hal.h"
 
 #include <sys/param.h>
 #include <string.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "mqtt_client.h"
 #include "esp_system.h"
-#include "nvs_flash.h"
-#include "nvs.h"
 #include "esp_event.h"
 #include "esp_netif.h"
-
 #include "esp_log.h"
-#include "mqtt_client.h"
 #include "esp_tls.h"
-#include "logs.pb.h"
-#include "device_health.pb.h"
+#include "nvs_flash.h"
+#include "nvs.h"
+
 #include "pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
+#include "logs.pb.h"
+#include "device_health.pb.h"
+
 
 
 #ifdef CONFIG_GOLAIN_MQTT_OTA
@@ -122,7 +125,7 @@ golain_err_t golain_hal_init(golain_t * golain){
 
 static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%ld", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     _golain_mqtt_client = event->client;
     golain_t *_golain_client = (golain_t*)golain_client;
@@ -190,13 +193,18 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
 
     #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
-    const esp_mqtt_client_confgi_t mqtt_cfg = {
-        .broker.address.uri = GOLAIN_MQTT_BROKER_URI,
-        .broker.address.port = GOLAIN_MQTT_BROKER_PORT,
-        .broker.verification.cerificate = (const char*)_golain_client->config->root_ca_cert_start,
-        .credentials.authentication.certificate = (const char*)_golain_client->config->device_cert,
-        .credentials.authentication.key = (const char*)_golain_client->config->device_pvt_key,
-    }
+    #define GOLAIN_MQTT_BROKER_URI_PORT GOLAIN_MQTT_BROKER_URI ":" STR(GOLAIN_MQTT_BROKER_PORT)
+
+    const esp_mqtt_client_config_t mqtt_cfg = {
+        .broker.address.uri = GOLAIN_MQTT_BROKER_URI_PORT,
+        .broker.verification.certificate = (const char*)_golain_client->config->root_ca_cert_start,
+        .credentials = {
+            .authentication = {
+                .certificate = (const char*)_golain_client->config->device_cert,
+                .key = (const char*)_golain_client->config->device_pvt_key,
+            }
+        }
+    };
 
     #else 
 
@@ -220,7 +228,7 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         return GOLAIN_MQTT_CONNECT_FAIL;
     }
 
-    ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    ESP_LOGI(TAG, "[APP] Free memory: %ld bytes", esp_get_free_heap_size());
     _golain_mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     esp_mqtt_client_register_event(_golain_mqtt_client, ESP_EVENT_ANY_ID, golain_hal_mqtt_event_handler, _golain_client);

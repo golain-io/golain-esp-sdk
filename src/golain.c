@@ -19,9 +19,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "golain_constants.h"
+#include "golain_types.h"
 #include "golain.h"
 #include "golain_hal.h"
-#include "golain_constants.h"
+
 // #include "esp_log.h"
 
 #include "pb.h"
@@ -29,8 +31,6 @@
 #include "pb_decode.h"
 
 #include "device_health.pb.h"
-#include "logs.pb.h"
-#include "golain_constants.h"
 
 #include <stdio.h>
 

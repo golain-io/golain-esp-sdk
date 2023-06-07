@@ -24,6 +24,8 @@
 
 #define GOLAIN_VERSION "0.1.0b"
 
+#include "sdkconfig.h"
+
 
 #define GOLAIN_SHADOW_NVS_KEY                           "golain_shadow"
 #define GOLAIN_DEVICE_HEALTH_NVS_KEY                    "golain_dev_health"

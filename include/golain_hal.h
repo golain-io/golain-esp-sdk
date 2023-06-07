@@ -22,24 +22,20 @@
 #ifndef _GOLAIN_HAL_H
 #define _GOLAIN_HAL_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "golain.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include <stdio.h>
 
-golain_err_t golain_hal_init(golain_t * _golain);
+#include "golain_types.h"
 
-#ifdef CONFIG_GOLAIN_BLE
-// ble functions
-golain_err_t golain_hal_ble_init(golain_t * _golain);
-uint8_t ble_addr_type;
-void ble_app_advertise(void);
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+
 // mqtt functions
 golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client);
 
