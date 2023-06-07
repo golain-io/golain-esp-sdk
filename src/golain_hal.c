@@ -139,6 +139,7 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
     golain_t *_golain_client = (golain_t*)golain_client;
     int msg_id;
 
+
     switch ((esp_mqtt_event_id_t)event_id) {
 
     case MQTT_EVENT_CONNECTED:
@@ -149,7 +150,8 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
         ESP_LOGD(TAG, "Sent subscribe successful, msg_id=%d", msg_id);
         
         #ifdef CONFIG_GOLAIN_MQTT_OTA
-        msg_id = _golain_hal_mqtt_subscribe(GOLAIN_OTA_TOPIC, 2);
+        msg_id = _golain_hal_mqtt_subscribe(GOLAIN_OTA_SUBSCRIBE_TOPIC, 2);
+        _golain_hal_mqtt_publish(GOLAIN_OTA_REQUEST_TOPIC, "1", 1, 0, 0);
         #endif
 
         break;
@@ -161,6 +163,7 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGD(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+
         break;
 
     case MQTT_EVENT_UNSUBSCRIBED:
@@ -462,6 +465,7 @@ esp_ota_handle_t _golain_ota_handle = 0;
 
 golain_err_t _golain_hal_ota_update(int event_total_data_len, char* event_data, int event_data_len)
 {
+    _golain_ota_total_len = event_total_data_len;
     _golain_ota_current_len = _golain_ota_current_len + event_data_len;
     #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     ESP_LOGI(OTA_TAG, "current length %ld  total length %ld", _golain_ota_current_len, _golain_ota_total_len);
