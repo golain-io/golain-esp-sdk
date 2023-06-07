@@ -1,9 +1,0 @@
-menu device_shadow
-
-    config DEVICE_SHADOW_BUFFER_SIZE
-        int "Device shadow buffer size"
-        default 256
-        help
-            Device shadow buffer size.
-
-endmenu

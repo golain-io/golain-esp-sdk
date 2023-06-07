@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Quoppo Inc.
+ * Copyright (c) 2023 Quoppo LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -22,24 +22,20 @@
 #ifndef _GOLAIN_HAL_H
 #define _GOLAIN_HAL_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "golain.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include <stdio.h>
 
-golain_err_t golain_hal_init(golain_t * _golain);
+#include "golain_types.h"
 
-#ifdef CONFIG_GOLAIN_BLE
-// ble functions
-golain_err_t golain_hal_ble_init(golain_t * _golain);
-uint8_t ble_addr_type;
-void ble_app_advertise(void);
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+
 // mqtt functions
 golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client);
 
@@ -150,7 +146,19 @@ golain_err_t _golain_hal_p_log_write(esp_log_level_t level, const char *func, co
 
 golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer);
 
-golain_err_t _golain_hal_p_log_get_number_of_logs(int* num);
+golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t* num);
+
+golain_err_t _golain_hal_p_log_background_push_task_init();
+
+void _golain_hal_p_log_background_push_task(void *pvParameters);
+
+#endif
+
+/*------------------------------------------------------BLE-------------------------------------*/
+#ifdef CONFIG_GOLAIN_BLE
+// ble functions
+golain_err_t golain_hal_ble_init(golain_t * _golain);
+void ble_app_advertise(void);
 
 #endif
 
@@ -159,6 +167,9 @@ golain_err_t _golain_hal_p_log_get_number_of_logs(int* num);
 
 golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto); 
 int8_t _golain_hal_reset_counter(void);
+
+golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length);
+golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length);
 
 #endif
 

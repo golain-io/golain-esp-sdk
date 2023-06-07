@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Quoppo Inc.
+ * Copyright (c) 2023 Quoppo LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -24,6 +24,8 @@
 
 #define GOLAIN_VERSION "0.1.0b"
 
+#include "sdkconfig.h"
+
 
 #define GOLAIN_SHADOW_NVS_KEY                           "golain_shadow"
 #define GOLAIN_DEVICE_HEALTH_NVS_KEY                    "golain_dev_health"
@@ -40,6 +42,8 @@
 
 #define GOLAIN_MQTT_BROKER_URI "mqtts://dev.golain.io"
 #define GOLAIN_MQTT_BROKER_PORT 8083
+
+#define GOLAIN_MQTT_BROKER_URL "mqtts://dev.golain.io:8083"
 
 // MQTT topics for all actions
 #define GOLAIN_SHADOW_TOPIC CONFIG_GOLAIN_ROOT_TOPIC CONFIG_GOLAIN_DEVICE_NAME "/device-shadow"

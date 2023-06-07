@@ -1,9 +1,0 @@
-syntax="proto3";
-
-
-message cell{
-    float voltage = 1;
-    float in_current = 2;
-    float out_current = 3;
-    float temperature = 4;
-}

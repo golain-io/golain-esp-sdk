@@ -19,29 +19,33 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "golain_hal.h"
 #include "golain_constants.h"
+#include "golain_types.h"
 #include "golain.h"
+#include "golain_hal.h"
+#include "golain_encode.h"
 
 #include <sys/param.h>
 #include <string.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "mqtt_client.h"
 #include "esp_system.h"
-#include "nvs_flash.h"
-#include "nvs.h"
 #include "esp_event.h"
 #include "esp_netif.h"
-
 #include "esp_log.h"
-#include "mqtt_client.h"
 #include "esp_tls.h"
-#include "logs.pb.h"
-#include "device_health.pb.h"
+#include "nvs_flash.h"
+#include "nvs.h"
+
 #include "pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
+#include "logs.pb.h"
+#include "device_health.pb.h"
+
 
 
 #ifdef CONFIG_GOLAIN_MQTT_OTA
@@ -115,6 +119,9 @@ golain_t* _golain;
 
 golain_err_t golain_hal_init(golain_t * golain){
     _golain=golain;
+    #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+    _golain_hal_p_log_background_push_task_init();
+    #endif
     return GOLAIN_OK;
 }
 
@@ -122,7 +129,11 @@ golain_err_t golain_hal_init(golain_t * golain){
 
 static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%ld", base, event_id);
+    #else 
+        ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    #endif
     esp_mqtt_event_handle_t event = event_data;
     _golain_mqtt_client = event->client;
     golain_t *_golain_client = (golain_t*)golain_client;
@@ -173,7 +184,7 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
             ESP_LOGE(TAG, "Last error code reported from esp-tls: 0x%x", event->error_handle->esp_tls_last_esp_err);
             ESP_LOGE(TAG, "Last tls stack error number: 0x%x", event->error_handle->esp_tls_stack_err);
             ESP_LOGE(TAG, "Last captured errno : %d (%s)",  event->error_handle->esp_transport_sock_errno,
-                     strerror(event->error_handle->esp_transport_sock_errno));
+            strerror(event->error_handle->esp_transport_sock_errno));
         } else if (event->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
             ESP_LOGE(TAG, "Connection refused error: 0x%x", event->error_handle->connect_return_code);
         } else {
@@ -189,7 +200,24 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
 
 
 golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
-    golain_err_t err = GOLAIN_OK;
+    golain_err_t err = GOLAIN_OK;  
+
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+
+    const esp_mqtt_client_config_t mqtt_cfg = {
+        .broker.address.uri = GOLAIN_MQTT_BROKER_URL,
+        .broker.verification.certificate = (const char*)_golain_client->config->root_ca_cert_start,
+        .credentials = {
+            .client_id = CONFIG_GOLAIN_DEVICE_NAME,
+            .authentication = {
+                .certificate = (const char*)_golain_client->config->device_cert,
+                .key = (const char*)_golain_client->config->device_pvt_key,
+            }
+        }
+    };
+    
+    #else 
+
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = GOLAIN_MQTT_BROKER_URI,
         .port = GOLAIN_MQTT_BROKER_PORT,
@@ -200,6 +228,8 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         
     };
 
+    #endif
+
     esp_err_t res = esp_tls_init_global_ca_store();
     res = esp_tls_set_global_ca_store((unsigned char *)_golain_client->config->root_ca_cert_start, _golain_client->config->root_ca_cert_len);
 
@@ -207,8 +237,11 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         ESP_LOGE(TAG,"Error code: 0x%08x\n", res);
         return GOLAIN_MQTT_CONNECT_FAIL;
     }
-
-    ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        ESP_LOGI(TAG, "[APP] Free memory: %ld bytes", esp_get_free_heap_size());
+    #else
+        ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    #endif
     _golain_mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     esp_mqtt_client_register_event(_golain_mqtt_client, ESP_EVENT_ANY_ID, golain_hal_mqtt_event_handler, _golain_client);
@@ -256,7 +289,7 @@ golain_err_t _golain_hal_mqtt_unsubscribe(const char *topic){
 
 golain_err_t _golain_hal_mqtt_publish(const char *topic, const char *data, uint16_t data_len, uint8_t qos, bool retain){
     golain_err_t err = esp_mqtt_client_publish(_golain_mqtt_client, topic, data, data_len, qos, retain);
-    if(err != 0){
+    if(err == -1){
         ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", topic, err);
         return GOLAIN_MQTT_PUBLISH_FAIL;
     }
@@ -327,7 +360,9 @@ golain_err_t _golain_hal_wifi_init(void){
     }
 
     wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH; 
+    #endif
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -432,7 +467,11 @@ golain_err_t _golain_hal_ota_update(int event_total_data_len, char* event_data, 
 {
     _golain_ota_total_len = event_total_data_len;
     _golain_ota_current_len = _golain_ota_current_len + event_data_len;
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     ESP_LOGI(OTA_TAG, "current length %ld  total length %ld", _golain_ota_current_len, _golain_ota_total_len);
+    #else
+    ESP_LOGI(OTA_TAG, "current length %d  total length %d", _golain_ota_current_len, _golain_ota_total_len);
+    #endif
 
     // Check if the message is an OTA update payload
 
@@ -546,13 +585,13 @@ void ble_app_advertise(void)
     memset(&adv_params, 0, sizeof(adv_params));
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND; // connectable or non-connectable
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN; // discoverable or non-discoverable
-    ble_gap_adv_start(ble_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
+    ble_gap_adv_start(_golain->ble_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
 }
 
 // The application
 void ble_app_on_sync(void)
 {
-    ble_hs_id_infer_auto(0, &ble_addr_type); // Determines the best address type automatically
+    ble_hs_id_infer_auto(0, &(_golain->ble_addr_type)); // Determines the best address type automatically
     ble_app_advertise();                     // Define the BLE connection
 }
 
@@ -565,7 +604,7 @@ void host_task(void *param)
 static int _golain_ble_shadow_read_cb(uint16_t con_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     size_t size_encoded;
     _golain_shadow_get_trimmed_shadow_buffer(_golain, &size_encoded);
-    os_mbuf_append(ctxt->om, shadow_buffer, size_encoded);
+    os_mbuf_append(ctxt->om, _golain->config->shadow_buffer, size_encoded);
     return 0;
 }
 
@@ -573,7 +612,7 @@ static int _golain_ble_shadow_write_cb(uint16_t conn_handle, uint16_t attr_handl
     _golain_shadow_update_from_buffer(_golain, ctxt->om->om_data,  ctxt->om->om_len); // Updating the shadow from the rceived buffer
     golain_mqtt_post_shadow(_golain);
     
-    ESP_LOGI(TAG, "Data from the SHADOW client: %s\n", shadow_buffer);
+    ESP_LOGI(TAG, "Data from the SHADOW client: %s\n", _golain->config->shadow_buffer);
     return 0;
 }
 
@@ -626,7 +665,9 @@ static int _golain_ble_configure_wifi_cb(uint16_t conn_handle, uint16_t attr_han
     strncpy((char *)wifi_config.sta.password, newpass, strlen((char*)newpass));
 
     wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH; 
+    #endif
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     printf("SSID: %s, Password: %s", wifi_config.sta.ssid, wifi_config.sta.password); 
@@ -673,7 +714,9 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
 };
 
 golain_err_t golain_hal_ble_init(golain_t* golain){
+    #if ESP_IDF_VERSION <= ESP_IDF_VERSION_VAL(5, 0, 0)
     esp_nimble_hci_and_controller_init();      // 2 - Initialize ESP controller
+    #endif
     nimble_port_init();                        // 3 - Initialize the host stack
     ble_svc_gap_device_name_set(CONFIG_GOLAIN_DEVICE_NAME); // 4 - Initialize NimBLE configuration - server name
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
@@ -685,8 +728,38 @@ golain_err_t golain_hal_ble_init(golain_t* golain){
     return GOLAIN_OK;
 }
 
+#endif // CONFIG_GOLAIN_BLE
+
 /*------------------------------------------------------------------------Persistent Logs----------------------------------------------------*/
 #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+
+golain_err_t _golain_p_log_send_mqtt_message(uint8_t* message, uint16_t message_len){
+    _golain_hal_mqtt_publish(GOLAIN_LOG_TOPIC, (const char*)message, message_len, 0, 0);
+    return GOLAIN_OK;
+}
+
+golain_err_t _golain_hal_p_log_background_push_task_init(){
+    xTaskCreate(_golain_hal_p_log_background_push_task, "p_log_push_task", 4096, NULL, 5, NULL);
+    return GOLAIN_OK;
+}
+
+void _golain_hal_p_log_background_push_task(void *pvParameters)
+{
+    uint8_t _golain_logs_buffer[CONFIG_GOLAIN_P_LOGS_BUFFER_SIZE];
+    bool _golain_hal_p_log_is_pushing = false;
+    while (1)
+    {
+        if (_golain_hal_p_log_is_pushing == false && _golain->mqtt_is_connected)
+        {
+            _golain_hal_p_log_is_pushing = true;
+            memset(_golain_logs_buffer, 0, CONFIG_GOLAIN_P_LOGS_BUFFER_SIZE);
+            _golain_hal_p_log_read_old_logs(_golain_logs_buffer);
+            _golain_hal_p_log_is_pushing = false;
+        }
+        vTaskDelay(CONFIG_GOLAIN_P_LOGS_FLUSH_INTERVAL*(60*1000) / portTICK_PERIOD_MS);
+    }
+}
+
 golain_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err)
 {
     switch (err)
@@ -715,7 +788,7 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
     }
 
     // get last log id
-    int last_log_id;
+    int32_t last_log_id;
     if (nvs_get_i32(p_log_handle, "last_log_id", &last_log_id) ==
         ESP_ERR_NVS_NOT_FOUND)
     {
@@ -729,7 +802,11 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
 
     // write to nvs flash
     char key[2];
-    sprintf(key, "%d", last_log_id);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        sprintf(key, "%ld", last_log_id);
+    #else
+        sprintf(key, "%d", last_log_id);
+    #endif
     err = nvs_set_blob(p_log_handle, key, data, len);
     if (err != ESP_OK)
     {
@@ -747,7 +824,11 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
     }
     nvs_close(p_log_handle);
 #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
-    ESP_LOGI(TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        ESP_LOGI(TAG, "Wrote to NVS: PLogID:%ld", last_log_id);
+    #else 
+        ESP_LOGI(TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+    #endif
 #endif
     return GOLAIN_OK;
 }
@@ -847,14 +928,14 @@ golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer)
 #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
         ESP_LOGI(TAG, "Read from NVS: PLogID:%d : %s", i, (char *)buffer);
 #endif
-        // _send_mqtt_message(buffer, len);
+        _golain_p_log_send_mqtt_message(buffer, len);
     }
-    //   memset(buffer, 0, 256);
+    memset(buffer, 0, 256);
     nvs_close(p_log_handle);
     return GOLAIN_OK;
 }
 
-golain_err_t _golain_hal_p_log_get_number_of_logs(int *num)
+golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t *num)
 {
     esp_err_t err;
     nvs_handle_t p_log_handle;
@@ -867,9 +948,95 @@ golain_err_t _golain_hal_p_log_get_number_of_logs(int *num)
 
     return nvs_get_i32(p_log_handle, "last_log_id", num);
 }
-#endif
+#endif // CONFIG_GOLAIN_PERSISTENT_LOGS
+
+
 /*-----------------------------------------------------------------------Device Health------------------------------------------------------*/
-#ifdef GOLAIN_REPORT_DEVICE_HEALTH
+#ifdef CONFIG_GOLAIN_REPORT_DEVICE_HEALTH
+
+#include "esp_chip_info.h"
+#include "esp_system.h"
+
+golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length){
+    char data[] = "Zephyr is better\n";
+    bool status;
+
+    esp_chip_info_t info = {};
+
+    esp_chip_info(&info);
+
+    /* Allocate space on the stack to store the message data.
+     *
+     * Nanopb generates simple struct definitions for all the messages.
+     * - check out the contents of simple.pb.h!
+     * It is a good idea to always initialize your structures
+     * so that you do not have garbage data from RAM in there.
+     */
+    deviceHealth message = deviceHealth_init_zero;
+
+    /* Create a stream that will write to our buffer. */
+    pb_ostream_t stream = pb_ostream_from_buffer(buffer, buffer_size);
+    message.lastRebootReason = esp_reset_reason();
+    message.deviceRevision = info.revision;
+    message.numberOferrorsSinceLastReboot = 123; // TODO
+    message.numberOfReboots = 1;
+    message.userStringData.funcs.encode = golain_pb_encode_string;
+    message.userStringData.arg = data;
+
+    /* Now we are ready to encode the message! */
+    status = pb_encode(&stream, deviceHealth_fields, &message);
+    *message_length = stream.bytes_written;
+
+    if (!status)
+    {
+        printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        return PB_ENCODE_FAIL;
+    }
+
+    return GOLAIN_OK;
+
+}
+
+golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length){
+     bool status;
+    char rx[20];
+    /* Allocate space for the decoded message. */
+    deviceHealth message = deviceHealth_init_zero;
+
+    /* Create a stream that reads from the buffer. */
+    pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
+
+    message.userStringData.funcs.decode = golain_pb_decode_string;
+    message.userStringData.arg = rx;
+
+    /* Now we are ready to decode the message. */
+    status = pb_decode(&stream, deviceHealth_fields, &message);
+
+    /* Check for errors... */
+    if (status)
+    {
+
+        GOLAIN_LOG_I("debug", "was called from %s", __func__);
+        #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        GOLAIN_LOG_I("decode", "number of errors since last reboot: %ld", message.numberOferrorsSinceLastReboot);
+        GOLAIN_LOG_I("decode", "number of reboots: %ld", message.numberOfReboots);
+        GOLAIN_LOG_I("decode", "chip revision: %ld", message.deviceRevision);
+        #else 
+        GOLAIN_LOG_I("decode", "number of errors since last reboot: %d", message.numberOferrorsSinceLastReboot);
+        GOLAIN_LOG_I("decode", "number of reboots: %d", message.numberOfReboots);
+        GOLAIN_LOG_I("decode", "chip revision: %d", message.deviceRevision);
+        #endif
+        GOLAIN_LOG_I("decode", "last reboot reason %d", message.lastRebootReason);
+        GOLAIN_LOG_I("decode", "user numeric data: %f", message.userNumericData);
+        GOLAIN_LOG_I("decode", "user string data: %s", rx);
+    }
+    else
+    {
+        printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
+    }
+
+    return status;
+}
 
 golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto){
     nvs_handle_t _golain_device_health_nvs_handle;
@@ -917,6 +1084,4 @@ int8_t _golain_hal_reset_counter(void){
     return num;
     
 }
-#endif
-
-#endif
+#endif // GOLAIN_REPORT_DEVICE_HEALTH
