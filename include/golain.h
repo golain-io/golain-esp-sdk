@@ -85,13 +85,6 @@ golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_
 
 golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length);
 
-
-
 #endif
-/*------------------------------------------------------Nanopb callbacks-------------------------------------*/
-bool golain_pb_decode_string(pb_istream_t *stream, const pb_field_t *field, void **arg);
-
-bool golain_pb_encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg) ;
-
 
 #endif
