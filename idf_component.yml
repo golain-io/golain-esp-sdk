@@ -9,4 +9,4 @@ documentation: https://dev.docs.golain.io/docs/sdks/hardware/esp/
 issues: https://github.com/golain-io/golain-esp-sdk/issues
 dependencies:
   idf:
-    version: ">=4.3, <5.0"
+    version: ">=4.3"
