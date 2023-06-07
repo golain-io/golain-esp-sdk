@@ -78,18 +78,9 @@ typedef struct _golain_t
     bool mqtt_is_connected;
 
     #ifdef CONFIG_GOLAIN_BLE
-    void *ble;
+    uint8_t ble_addr_type;
     #endif
 
 } golain_t;
-
-#ifdef CONFIG_GOLAIN_BLE
-// ble functions
-golain_err_t golain_hal_ble_init(golain_t * _golain);
-uint8_t ble_addr_type;
-void ble_app_advertise(void);
-
-#endif
-
 
 #endif

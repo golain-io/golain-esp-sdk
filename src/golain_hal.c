@@ -565,13 +565,13 @@ void ble_app_advertise(void)
     memset(&adv_params, 0, sizeof(adv_params));
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND; // connectable or non-connectable
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN; // discoverable or non-discoverable
-    ble_gap_adv_start(ble_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
+    ble_gap_adv_start(_golain->ble_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
 }
 
 // The application
 void ble_app_on_sync(void)
 {
-    ble_hs_id_infer_auto(0, &ble_addr_type); // Determines the best address type automatically
+    ble_hs_id_infer_auto(0, &(_golain->ble_addr_type)); // Determines the best address type automatically
     ble_app_advertise();                     // Define the BLE connection
 }
 
@@ -709,7 +709,7 @@ golain_err_t golain_hal_ble_init(golain_t* golain){
 #endif // CONFIG_GOLAIN_BLE
 
 /*------------------------------------------------------------------------Persistent Logs----------------------------------------------------*/
-// #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
 
 golain_err_t _golain_p_log_send_mqtt_message(char* message, uint16_t message_len){
     _golain_hal_mqtt_publish(GOLAIN_LOG_TOPIC, message, message_len, 0, 0);

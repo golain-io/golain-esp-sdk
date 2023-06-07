@@ -75,9 +75,6 @@ golain_err_t golain_shadow_update(golain_t*);
 
 golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t *, size_t* );
 
-/*------------------------------------------------------Persistent Logs-------------------------------------*/
-
-
 /*------------------------------------------------------Device Health---------------------------------------*/
 #ifdef CONFIG_GOLAIN_REPORT_DEVICE_HEALTH
 golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length);

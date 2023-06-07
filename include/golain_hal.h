@@ -152,6 +152,14 @@ golain_err_t _golain_hal_p_log_background_push_task_init();
 
 #endif
 
+/*------------------------------------------------------BLE-------------------------------------*/
+#ifdef CONFIG_GOLAIN_BLE
+// ble functions
+golain_err_t golain_hal_ble_init(golain_t * _golain);
+void ble_app_advertise(void);
+
+#endif
+
 
 #ifdef CONFIG_GOLAIN_DEVICE_HEALTH
 
