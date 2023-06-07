@@ -129,7 +129,11 @@ golain_err_t golain_hal_init(golain_t * golain){
 
 static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%ld", base, event_id);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%ld", base, event_id);
+    #else 
+        ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    #endif
     esp_mqtt_event_handle_t event = event_data;
     _golain_mqtt_client = event->client;
     golain_t *_golain_client = (golain_t*)golain_client;
@@ -230,8 +234,11 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         ESP_LOGE(TAG,"Error code: 0x%08x\n", res);
         return GOLAIN_MQTT_CONNECT_FAIL;
     }
-
-    ESP_LOGI(TAG, "[APP] Free memory: %ld bytes", esp_get_free_heap_size());
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        ESP_LOGI(TAG, "[APP] Free memory: %ld bytes", esp_get_free_heap_size());
+    #else
+        ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    #endif
     _golain_mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     esp_mqtt_client_register_event(_golain_mqtt_client, ESP_EVENT_ANY_ID, golain_hal_mqtt_event_handler, _golain_client);
@@ -350,7 +357,9 @@ golain_err_t _golain_hal_wifi_init(void){
     }
 
     wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH; 
+    #endif
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -454,7 +463,11 @@ esp_ota_handle_t _golain_ota_handle = 0;
 golain_err_t _golain_hal_ota_update(int event_total_data_len, char* event_data, int event_data_len)
 {
     _golain_ota_current_len = _golain_ota_current_len + event_data_len;
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     ESP_LOGI(OTA_TAG, "current length %ld  total length %ld", _golain_ota_current_len, _golain_ota_total_len);
+    #else
+    ESP_LOGI(OTA_TAG, "current length %d  total length %d", _golain_ota_current_len, _golain_ota_total_len);
+    #endif
 
     // Check if the message is an OTA update payload
 
@@ -648,7 +661,9 @@ static int _golain_ble_configure_wifi_cb(uint16_t conn_handle, uint16_t attr_han
     strncpy((char *)wifi_config.sta.password, newpass, strlen((char*)newpass));
 
     wifi_config.sta.threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH; 
+    #endif
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     printf("SSID: %s, Password: %s", wifi_config.sta.ssid, wifi_config.sta.password); 
@@ -783,7 +798,11 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
 
     // write to nvs flash
     char key[2];
-    sprintf(key, "%ld", last_log_id);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        sprintf(key, "%ld", last_log_id);
+    #else
+        sprintf(key, "%d", last_log_id);
+    #endif
     err = nvs_set_blob(p_log_handle, key, data, len);
     if (err != ESP_OK)
     {
@@ -801,7 +820,11 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
     }
     nvs_close(p_log_handle);
 #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
-    ESP_LOGI(TAG, "Wrote to NVS: PLogID:%ld", last_log_id);
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+        ESP_LOGI(TAG, "Wrote to NVS: PLogID:%ld", last_log_id);
+    #else 
+        ESP_LOGI(TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+    #endif
 #endif
     return GOLAIN_OK;
 }
@@ -990,10 +1013,16 @@ golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message
     {
 
         GOLAIN_LOG_I("debug", "was called from %s", __func__);
+        #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
         GOLAIN_LOG_I("decode", "number of errors since last reboot: %ld", message.numberOferrorsSinceLastReboot);
-        GOLAIN_LOG_I("decode", "last reboot reason %d", message.lastRebootReason);
         GOLAIN_LOG_I("decode", "number of reboots: %ld", message.numberOfReboots);
         GOLAIN_LOG_I("decode", "chip revision: %ld", message.deviceRevision);
+        #else 
+        GOLAIN_LOG_I("decode", "number of errors since last reboot: %d", message.numberOferrorsSinceLastReboot);
+        GOLAIN_LOG_I("decode", "number of reboots: %d", message.numberOfReboots);
+        GOLAIN_LOG_I("decode", "chip revision: %d", message.deviceRevision);
+        #endif
+        GOLAIN_LOG_I("decode", "last reboot reason %d", message.lastRebootReason);
         GOLAIN_LOG_I("decode", "user numeric data: %f", message.userNumericData);
         GOLAIN_LOG_I("decode", "user string data: %s", rx);
     }

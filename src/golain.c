@@ -252,10 +252,3 @@ golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t * golain, size_t*
     return GOLAIN_OK;
 
 }
-
-#ifndef CONFIG_GOLAIN_CLOUD_LOGGING
-golain_err_t golain_p_log_write(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__){
-    _golain_hal_p_log_write(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
-}
-
-#endif // !CONFIG_GOLAIN_CLOUD_LOGGING
