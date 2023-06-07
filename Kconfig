@@ -94,6 +94,23 @@ menu "Golain"
                 value is 3, which means that both ERROR and WARNING logs
                 will be stored.
 
+        config GOLAIN_P_LOGS_BUFFER_SIZE
+            int "Persistent logs buffer size"
+            depends on GOLAIN_CLOUD_LOGGING
+            default 256
+            help
+                This option specifies the size of the buffer used to store
+                persistent logs. The default value is 256 bytes.
+
+        config GOLAIN_P_LOGS_FLUSH_INTERVAL
+            int "Flush interval"
+            depends on GOLAIN_CLOUD_LOGGING
+            default 360
+            help
+                This option specifies the interval in minutes at which
+                persistent logs are flushed from NVS to cloud.  The default
+                value is 360 minutes [6 hours].
+
         menu "Device Health"
 
         config GOLAIN_REPORT_DEVICE_HEALTH

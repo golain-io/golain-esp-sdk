@@ -709,7 +709,35 @@ golain_err_t golain_hal_ble_init(golain_t* golain){
 #endif // CONFIG_GOLAIN_BLE
 
 /*------------------------------------------------------------------------Persistent Logs----------------------------------------------------*/
-#ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+// #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+
+golain_err_t _golain_p_log_send_mqtt_message(char* message, uint16_t message_len){
+    _golain_hal_mqtt_publish(GOLAIN_LOG_TOPIC, message, message_len, 0, 0);
+    return GOLAIN_OK;
+}
+
+golain_err_t _golain_hal_p_log_background_push_task_init(){
+    xTaskCreate(_golain_hal_p_log_background_push_task, "p_log_push_task", 4096, NULL, 5, NULL);
+    return GOLAIN_OK;
+}
+
+void _golain_hal_p_log_background_push_task(void *pvParameters)
+{
+    uint8_t _golain_logs_buffer[CONFIG_GOLAIN_P_LOGS_BUFFER_SIZE];
+    bool _golain_hal_p_log_is_pushing = false;
+    while (1)
+    {
+        if (_golain_hal_p_log_is_pushing == false)
+        {
+            _golain_hal_p_log_is_pushing = true;
+            memset(_golain_logs_buffer, 0, CONFIG_GOLAIN_P_LOGS_BUFFER_SIZE);
+            _golain_hal_p_log_read_old_logs(_golain_logs_buffer);
+            _golain_hal_p_log_is_pushing = false;
+        }
+        vTaskDelay(CONFIG_GOLAIN_P_LOGS_FLUSH_INTERVAL*(60*1000) / portTICK_PERIOD_MS);
+    }
+}
+
 golain_err_t _golain_hal_p_log_check_nvs_errors(esp_err_t err)
 {
     switch (err)
@@ -870,9 +898,9 @@ golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer)
 #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
         ESP_LOGI(TAG, "Read from NVS: PLogID:%d : %s", i, (char *)buffer);
 #endif
-        // _send_mqtt_message(buffer, len);
+        _golain_p_log_send_mqtt_message(buffer, len);
     }
-    //   memset(buffer, 0, 256);
+    memset(buffer, 0, 256);
     nvs_close(p_log_handle);
     return GOLAIN_OK;
 }

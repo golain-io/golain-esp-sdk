@@ -148,6 +148,8 @@ golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer);
 
 golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t* num);
 
+golain_err_t _golain_hal_p_log_background_push_task_init();
+
 #endif
 
 

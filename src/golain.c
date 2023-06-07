@@ -83,6 +83,11 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
         return err;
     }
 
+    #ifdef CONFIG_OLAIN_CLOUD_LOGGING
+    // initialise background push task
+    err = _golain_hal_p_log_background_push_task_init();
+    #endif
+
 
     return err;
 }
