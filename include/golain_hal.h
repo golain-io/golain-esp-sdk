@@ -150,6 +150,8 @@ golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t* num);
 
 golain_err_t _golain_hal_p_log_background_push_task_init();
 
+void _golain_hal_p_log_background_push_task(void *pvParameters);
+
 #endif
 
 /*------------------------------------------------------BLE-------------------------------------*/
@@ -165,6 +167,9 @@ void ble_app_advertise(void);
 
 golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto); 
 int8_t _golain_hal_reset_counter(void);
+
+golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length);
+golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length);
 
 #endif
 

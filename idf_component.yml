@@ -8,4 +8,5 @@ repository: https://github.com/golain-io/golain-esp-sdk.git
 documentation: https://dev.docs.golain.io/docs/sdks/hardware/esp/
 issues: https://github.com/golain-io/golain-esp-sdk/issues
 dependencies:
-  esp-idf: ">=4.3"
+  idf: 
+    version: ">=4.3"

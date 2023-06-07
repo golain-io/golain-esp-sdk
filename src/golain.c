@@ -54,10 +54,6 @@ golain_err_t golain_init(golain_t *golain, golain_config_t *config) {
 
     golain_shadow_init(golain);
 
-    #ifdef CONFIG_GOLAIN_BLE
-    golain->ble = NULL;
-    #endif
-
 
     #ifdef CONFIG_GOLAIN_BLE
     // initialise ble client
@@ -257,79 +253,9 @@ golain_err_t _golain_shadow_get_trimmed_shadow_buffer(golain_t * golain, size_t*
 
 }
 
-/*----------------------------------------------------------Device Health-------------------------------------------------------------------*/
-#ifdef CONFIG_GOLAIN_DEVICE_HEALTH
-
-golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length){
-    char data[] = "Zephyr is better\n";
-    bool status;
-    esp_chip_info(&info);
-
-    /* Allocate space on the stack to store the message data.
-     *
-     * Nanopb generates simple struct definitions for all the messages.
-     * - check out the contents of simple.pb.h!
-     * It is a good idea to always initialize your structures
-     * so that you do not have garbage data from RAM in there.
-     */
-    deviceHealth message = deviceHealth_init_zero;
-
-    /* Create a stream that will write to our buffer. */
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, buffer_size);
-    message.lastRebootReason = esp_reset_reason();
-    message.deviceRevision = info.revision;
-    message.numberOferrorsSinceLastReboot = errorCountSinceLastReset;
-    message.numberOfReboots = restart_counter();
-    message.userStringData.funcs.encode = golain_pb_encode_string;
-    message.userStringData.arg = data;
-
-    /* Now we are ready to encode the message! */
-    status = pb_encode(&stream, deviceHealth_fields, &message);
-    *message_length = stream.bytes_written;
-
-    if (!status)
-    {
-        printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
-        return PB_ENCODE_FAIL;
-    }
-
-    return GOLAIN_OK;
-
+#ifndef CONFIG_GOLAIN_CLOUD_LOGGING
+golain_err_t golain_p_log_write(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__){
+    _golain_hal_p_log_write(ESP_LOG_INFO, __func__, "[%s]: " format, tag, ##__VA_ARGS__);
 }
 
-golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length){
-     bool status;
-    char rx[20];
-    /* Allocate space for the decoded message. */
-    deviceHealth message = deviceHealth_init_zero;
-
-    /* Create a stream that reads from the buffer. */
-    pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
-
-    message.userStringData.funcs.decode = golain_pb_decode_string;
-    message.userStringData.arg = rx;
-
-    /* Now we are ready to decode the message. */
-    status = pb_decode(&stream, deviceHealth_fields, &message);
-
-    /* Check for errors... */
-    if (status)
-    {
-
-        GOLAIN_LOG_I("debug", "was called from %s", __func__);
-        GOLAIN_LOG_I("decode", "number of errors since last reboot: %d", message.numberOferrorsSinceLastReboot);
-        GOLAIN_LOG_I("decode", "last reboot reason %d", message.lastRebootReason);
-        GOLAIN_LOG_I("decode", "number of reboots: %d", message.numberOfReboots);
-        GOLAIN_LOG_I("decode", "chip revision: %d", message.deviceRevision);
-        GOLAIN_LOG_I("decode", "user numeric data: %f", message.userNumericData);
-        GOLAIN_LOG_I("decode", "user string data: %s", rx);
-    }
-    else
-    {
-        printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
-    }
-
-    return status;
-}
-
-#endif
+#endif // !CONFIG_GOLAIN_CLOUD_LOGGING

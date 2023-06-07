@@ -119,6 +119,9 @@ golain_t* _golain;
 
 golain_err_t golain_hal_init(golain_t * golain){
     _golain=golain;
+    #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
+    _golain_hal_p_log_background_push_task_init();
+    #endif
     return GOLAIN_OK;
 }
 
@@ -711,8 +714,8 @@ golain_err_t golain_hal_ble_init(golain_t* golain){
 /*------------------------------------------------------------------------Persistent Logs----------------------------------------------------*/
 #ifdef CONFIG_GOLAIN_CLOUD_LOGGING
 
-golain_err_t _golain_p_log_send_mqtt_message(char* message, uint16_t message_len){
-    _golain_hal_mqtt_publish(GOLAIN_LOG_TOPIC, message, message_len, 0, 0);
+golain_err_t _golain_p_log_send_mqtt_message(uint8_t* message, uint16_t message_len){
+    _golain_hal_mqtt_publish(GOLAIN_LOG_TOPIC, (const char*)message, message_len, 0, 0);
     return GOLAIN_OK;
 }
 
@@ -727,7 +730,7 @@ void _golain_hal_p_log_background_push_task(void *pvParameters)
     bool _golain_hal_p_log_is_pushing = false;
     while (1)
     {
-        if (_golain_hal_p_log_is_pushing == false)
+        if (_golain_hal_p_log_is_pushing == false && _golain->mqtt_is_connected)
         {
             _golain_hal_p_log_is_pushing = true;
             memset(_golain_logs_buffer, 0, CONFIG_GOLAIN_P_LOGS_BUFFER_SIZE);
@@ -798,7 +801,7 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
     }
     nvs_close(p_log_handle);
 #if CONFIG_PERSISTENT_LOGS_INTERNAL_LOG_LEVEL > 2
-    ESP_LOGI(TAG, "Wrote to NVS: PLogID:%d", last_log_id);
+    ESP_LOGI(TAG, "Wrote to NVS: PLogID:%ld", last_log_id);
 #endif
     return GOLAIN_OK;
 }
@@ -919,8 +922,88 @@ golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t *num)
     return nvs_get_i32(p_log_handle, "last_log_id", num);
 }
 #endif // CONFIG_GOLAIN_PERSISTENT_LOGS
+
+
 /*-----------------------------------------------------------------------Device Health------------------------------------------------------*/
-#ifdef GOLAIN_REPORT_DEVICE_HEALTH
+#ifdef CONFIG_GOLAIN_REPORT_DEVICE_HEALTH
+
+#include "esp_chip_info.h"
+#include "esp_system.h"
+
+golain_err_t golain_device_health_encode_message(uint8_t *buffer, size_t buffer_size, size_t *message_length){
+    char data[] = "Zephyr is better\n";
+    bool status;
+
+    esp_chip_info_t info = {};
+
+    esp_chip_info(&info);
+
+    /* Allocate space on the stack to store the message data.
+     *
+     * Nanopb generates simple struct definitions for all the messages.
+     * - check out the contents of simple.pb.h!
+     * It is a good idea to always initialize your structures
+     * so that you do not have garbage data from RAM in there.
+     */
+    deviceHealth message = deviceHealth_init_zero;
+
+    /* Create a stream that will write to our buffer. */
+    pb_ostream_t stream = pb_ostream_from_buffer(buffer, buffer_size);
+    message.lastRebootReason = esp_reset_reason();
+    message.deviceRevision = info.revision;
+    message.numberOferrorsSinceLastReboot = 123; // TODO
+    message.numberOfReboots = 1;
+    message.userStringData.funcs.encode = golain_pb_encode_string;
+    message.userStringData.arg = data;
+
+    /* Now we are ready to encode the message! */
+    status = pb_encode(&stream, deviceHealth_fields, &message);
+    *message_length = stream.bytes_written;
+
+    if (!status)
+    {
+        printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        return PB_ENCODE_FAIL;
+    }
+
+    return GOLAIN_OK;
+
+}
+
+golain_err_t golain_device_health_decode_message(uint8_t *buffer, size_t message_length){
+     bool status;
+    char rx[20];
+    /* Allocate space for the decoded message. */
+    deviceHealth message = deviceHealth_init_zero;
+
+    /* Create a stream that reads from the buffer. */
+    pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
+
+    message.userStringData.funcs.decode = golain_pb_decode_string;
+    message.userStringData.arg = rx;
+
+    /* Now we are ready to decode the message. */
+    status = pb_decode(&stream, deviceHealth_fields, &message);
+
+    /* Check for errors... */
+    if (status)
+    {
+
+        GOLAIN_LOG_I("debug", "was called from %s", __func__);
+        GOLAIN_LOG_I("decode", "number of errors since last reboot: %ld", message.numberOferrorsSinceLastReboot);
+        GOLAIN_LOG_I("decode", "last reboot reason %d", message.lastRebootReason);
+        GOLAIN_LOG_I("decode", "number of reboots: %ld", message.numberOfReboots);
+        GOLAIN_LOG_I("decode", "chip revision: %ld", message.deviceRevision);
+        GOLAIN_LOG_I("decode", "user numeric data: %f", message.userNumericData);
+        GOLAIN_LOG_I("decode", "user string data: %s", rx);
+    }
+    else
+    {
+        printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
+    }
+
+    return status;
+}
 
 golain_err_t _golain_hal_device_health_store(uint8_t *deviceHealthproto){
     nvs_handle_t _golain_device_health_nvs_handle;
