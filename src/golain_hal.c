@@ -174,7 +174,7 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
             ESP_LOGE(TAG, "Last error code reported from esp-tls: 0x%x", event->error_handle->esp_tls_last_esp_err);
             ESP_LOGE(TAG, "Last tls stack error number: 0x%x", event->error_handle->esp_tls_stack_err);
             ESP_LOGE(TAG, "Last captured errno : %d (%s)",  event->error_handle->esp_transport_sock_errno,
-                     strerror(event->error_handle->esp_transport_sock_errno));
+            strerror(event->error_handle->esp_transport_sock_errno));
         } else if (event->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
             ESP_LOGE(TAG, "Connection refused error: 0x%x", event->error_handle->connect_return_code);
         } else {
@@ -276,7 +276,7 @@ golain_err_t _golain_hal_mqtt_unsubscribe(const char *topic){
 
 golain_err_t _golain_hal_mqtt_publish(const char *topic, const char *data, uint16_t data_len, uint8_t qos, bool retain){
     golain_err_t err = esp_mqtt_client_publish(_golain_mqtt_client, topic, data, data_len, qos, retain);
-    if(err != 0){
+    if(err == -1){
         ESP_LOGE(TAG, "Error publishing to %s  Returned: %d", topic, err);
         return GOLAIN_MQTT_PUBLISH_FAIL;
     }
