@@ -146,7 +146,7 @@ golain_err_t _golain_hal_p_log_write(esp_log_level_t level, const char *func, co
 
 golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer);
 
-golain_err_t _golain_hal_p_log_get_number_of_logs(int* num);
+golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t* num);
 
 #endif
 

@@ -197,6 +197,7 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         .broker.address.uri = GOLAIN_MQTT_BROKER_URL,
         .broker.verification.certificate = (const char*)_golain_client->config->root_ca_cert_start,
         .credentials = {
+            .client_id = CONFIG_GOLAIN_DEVICE_NAME,
             .authentication = {
                 .certificate = (const char*)_golain_client->config->device_cert,
                 .key = (const char*)_golain_client->config->device_pvt_key,
@@ -690,7 +691,9 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
 };
 
 golain_err_t golain_hal_ble_init(golain_t* golain){
+    #if ESP_IDF_VERSION <= ESP_IDF_VERSION_VAL(5, 0, 0)
     esp_nimble_hci_and_controller_init();      // 2 - Initialize ESP controller
+    #endif
     nimble_port_init();                        // 3 - Initialize the host stack
     ble_svc_gap_device_name_set(CONFIG_GOLAIN_DEVICE_NAME); // 4 - Initialize NimBLE configuration - server name
     ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
@@ -732,7 +735,7 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
     }
 
     // get last log id
-    int last_log_id;
+    int32_t last_log_id;
     if (nvs_get_i32(p_log_handle, "last_log_id", &last_log_id) ==
         ESP_ERR_NVS_NOT_FOUND)
     {
@@ -746,7 +749,7 @@ golain_err_t _golain_hal_p_log_write_to_nvs(uint8_t *data, size_t len)
 
     // write to nvs flash
     char key[2];
-    sprintf(key, "%d", last_log_id);
+    sprintf(key, "%ld", last_log_id);
     err = nvs_set_blob(p_log_handle, key, data, len);
     if (err != ESP_OK)
     {
@@ -871,7 +874,7 @@ golain_err_t _golain_hal_p_log_read_old_logs(uint8_t *buffer)
     return GOLAIN_OK;
 }
 
-golain_err_t _golain_hal_p_log_get_number_of_logs(int *num)
+golain_err_t _golain_hal_p_log_get_number_of_logs(int32_t *num)
 {
     esp_err_t err;
     nvs_handle_t p_log_handle;
