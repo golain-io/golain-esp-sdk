@@ -186,7 +186,20 @@ static void golain_hal_mqtt_event_handler(void *golain_client, esp_event_base_t 
 
 
 golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
-    golain_err_t err = GOLAIN_OK;
+    golain_err_t err = GOLAIN_OK;  
+
+    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+
+    const esp_mqtt_client_confgi_t mqtt_cfg = {
+        .broker.address.uri = GOLAIN_MQTT_BROKER_URI,
+        .broker.address.port = GOLAIN_MQTT_BROKER_PORT,
+        .broker.verification.cerificate = (const char*)_golain_client->config->root_ca_cert_start,
+        .credentials.authentication.certificate = (const char*)_golain_client->config->device_cert,
+        .credentials.authentication.key = (const char*)_golain_client->config->device_pvt_key,
+    }
+
+    #else 
+
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = GOLAIN_MQTT_BROKER_URI,
         .port = GOLAIN_MQTT_BROKER_PORT,
@@ -196,6 +209,8 @@ golain_err_t _golain_hal_mqtt_init(golain_t * _golain_client){
         .cert_pem = (const char *)_golain_client->config->root_ca_cert_start,
         
     };
+
+    #endif
 
     esp_err_t res = esp_tls_init_global_ca_store();
     res = esp_tls_set_global_ca_store((unsigned char *)_golain_client->config->root_ca_cert_start, _golain_client->config->root_ca_cert_len);
